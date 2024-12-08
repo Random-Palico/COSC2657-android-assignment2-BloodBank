@@ -5,14 +5,15 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-public class MainActivity extends AppCompatActivity {
+public class DonorMainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main_donor);
 
         TextView welcomeUser = findViewById(R.id.welcomeUser);
-        welcomeUser.setText("Hi John Doe");
+        String userName = getIntent().getStringExtra("USER_NAME");
+        welcomeUser.setText("Hi " + userName);
     }
 }

@@ -13,10 +13,11 @@ public class WelcomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_welcome);
 
-        Button loginRegisterButton = findViewById(R.id.loginRegisterButton);
-        loginRegisterButton.setOnClickListener(v -> {
+        Button loginButton = findViewById(R.id.loginRegisterButton);
+        loginButton.setOnClickListener(v -> {
             Intent intent = new Intent(WelcomeActivity.this, LoginActivity.class);
             startActivity(intent);
+            finish();
         });
     }
 }
