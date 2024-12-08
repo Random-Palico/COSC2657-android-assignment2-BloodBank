@@ -1,14 +1,14 @@
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="300dp"
-    android:layout_height="match_parent"
-    android:layout_margin="8dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
     app:cardCornerRadius="8dp"
     app:cardElevation="4dp">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp">
 
@@ -17,7 +17,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="Blood Donation Site"
+            android:text="Campaign Title"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -26,20 +26,20 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="Thursday, 5 December 2024" />
+            android:text="Campaign Date" />
 
         <TextView
             android:id="@+id/campaignLocation"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="FV Hospital" />
+            android:text="Campaign Location" />
 
         <Button
             android:id="@+id/registerButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Register"
+            android:text="REGISTER"
             android:textColor="@android:color/white" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>
