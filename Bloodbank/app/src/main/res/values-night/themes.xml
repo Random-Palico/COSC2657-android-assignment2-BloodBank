@@ -1,0 +1,15 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme for Night -->
+    <style name="Theme.BloodBank" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color: Dark Red -->
+        <item name="colorPrimary">@color/red_700</item>
+        <item name="colorPrimaryVariant">@color/red_900</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Secondary brand color: Dark Gray -->
+        <item name="colorSecondary">@color/gray_800</item>
+        <item name="colorSecondaryVariant">@color/gray_600</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+    </style>
+</resources>
