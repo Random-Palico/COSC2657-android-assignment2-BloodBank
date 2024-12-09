@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">BloodBank</string>
+    <string name="campaign_image_desc">Campaign Image</string>
+    <string name="welcome_user_desc">Welcome User Text</string>
+    <string name="campaign_title_desc">Campaign Title</string>
+    <string name="campaign_date_desc">Campaign Date</string>
+    <string name="campaign_location_desc">Campaign Location</string>
+    <string name="register_button_desc">Register Button</string>
 </resources>

@@ -5,12 +5,14 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.bumptech.glide.Glide;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -36,7 +38,6 @@ public class DonorMainActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         LinearLayout campaignList = findViewById(R.id.campaignList);
 
-        // Fetch campaigns
         fetchCampaigns(campaignList);
     }
 
@@ -53,18 +54,17 @@ public class DonorMainActivity extends AppCompatActivity {
                         String title = document.getString("siteName");
                         String location = document.getString("address");
                         Timestamp eventTimestamp = document.getTimestamp("eventDate");
+                        String eventImg = document.getString("eventImg");
 
-                        if (title == null || eventTimestamp == null || location == null) {
+                        if (title == null || eventTimestamp == null || location == null || eventImg == null) {
                             Log.e(TAG, "Missing data in Firestore document: " + document.getId());
                             continue;
                         }
 
                         Date eventDate = eventTimestamp.toDate();
-                        SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMMM yyyy", Locale.getDefault());
-                        String formattedDate = dateFormat.format(eventDate);
+                        String formattedDate = new SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(eventDate);
 
-                        // Add card dynamically
-                        addCampaignCard(campaignList, title, formattedDate, location);
+                        addCampaignCard(campaignList, title, formattedDate, location, eventImg);
                     }
                 })
                 .addOnFailureListener(e -> {
@@ -73,18 +73,25 @@ public class DonorMainActivity extends AppCompatActivity {
                 });
     }
 
-    private void addCampaignCard(LinearLayout campaignList, String title, String date, String location) {
+    private void addCampaignCard(LinearLayout campaignList, String title, String date, String location, String eventImg) {
         LayoutInflater inflater = LayoutInflater.from(this);
         View cardView = inflater.inflate(R.layout.campaign_card, campaignList, false);
 
         TextView campaignTitle = cardView.findViewById(R.id.campaignTitle);
         TextView campaignDate = cardView.findViewById(R.id.campaignDate);
         TextView campaignLocation = cardView.findViewById(R.id.campaignLocation);
+        ImageView campaignImage = cardView.findViewById(R.id.campaignImage);
         Button registerButton = cardView.findViewById(R.id.registerButton);
 
         campaignTitle.setText(title);
         campaignDate.setText(date);
         campaignLocation.setText(location);
+
+        Glide.with(this)
+                .load(eventImg)
+//                .placeholder(R.drawable.placeholder)
+//                .error(R.drawable.error)
+                .into(campaignImage);
 
         registerButton.setOnClickListener(v -> Toast.makeText(this, "Registered for " + title, Toast.LENGTH_SHORT).show());
 
