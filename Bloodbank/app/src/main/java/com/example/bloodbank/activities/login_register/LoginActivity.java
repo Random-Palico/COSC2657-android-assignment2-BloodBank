@@ -1,16 +1,23 @@
-package com.example.bloodbank;
+package com.example.bloodbank.activities.login_register;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.bloodbank.R;
+import com.example.bloodbank.activities.DonorMainActivity;
+import com.example.bloodbank.activities.ManagerMainActivity;
+import com.example.bloodbank.activities.SuperMainActivity;
+import com.example.bloodbank.activities.admin_super.AdminMainActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -18,6 +25,12 @@ public class LoginActivity extends AppCompatActivity {
 
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
+    private SharedPreferences sharedPreferences;
+    private SharedPreferences.Editor editor;
+    private static final String PREF_NAME = "LoginPrefs";
+    private static final String KEY_EMAIL = "email";
+    private static final String KEY_PASSWORD = "password";
+    private static final String KEY_REMEMBER = "remember";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,10 +40,20 @@ public class LoginActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
+        sharedPreferences = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+        editor = sharedPreferences.edit();
+
         EditText emailField = findViewById(R.id.username);
         EditText passwordField = findViewById(R.id.password);
+        CheckBox rememberMeCheckBox = findViewById(R.id.rememberMeCheckBox);
         Button loginButton = findViewById(R.id.loginButton);
         TextView registerLink = findViewById(R.id.registerLink);
+
+        if (sharedPreferences.getBoolean(KEY_REMEMBER, false)) {
+            emailField.setText(sharedPreferences.getString(KEY_EMAIL, ""));
+            passwordField.setText(sharedPreferences.getString(KEY_PASSWORD, ""));
+            rememberMeCheckBox.setChecked(true);
+        }
 
         loginButton.setOnClickListener(v -> {
             String email = emailField.getText().toString().trim();
@@ -38,7 +61,7 @@ public class LoginActivity extends AppCompatActivity {
 
             if (email.isEmpty() || pass.isEmpty()) {
                 Toast.makeText(this, "Please fill in all fields!", Toast.LENGTH_SHORT).show();
-                return; // Prevent further execution
+                return;
             }
 
             mAuth.signInWithEmailAndPassword(email, pass)
@@ -56,6 +79,16 @@ public class LoginActivity extends AppCompatActivity {
                                                 return;
                                             }
 
+                                            // Save user details if box is checked
+                                            if (rememberMeCheckBox.isChecked()) {
+                                                editor.putString(KEY_EMAIL, email);
+                                                editor.putString(KEY_PASSWORD, pass);
+                                                editor.putBoolean(KEY_REMEMBER, true);
+                                                editor.apply();
+                                            } else {
+                                                editor.clear().apply();
+                                            }
+
                                             navigateToRoleActivity(role, name);
                                         } else {
                                             Toast.makeText(this, "User data not found in Firestore!", Toast.LENGTH_SHORT).show();
@@ -71,7 +104,6 @@ public class LoginActivity extends AppCompatActivity {
                         }
                     });
         });
-
 
         registerLink.setOnClickListener(v -> {
             Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
@@ -109,11 +141,15 @@ public class LoginActivity extends AppCompatActivity {
 
         if (intent != null) {
             intent.putExtra("USER_NAME", name);
+            intent.putExtra("USER_ROLE", role);
+
+            editor.putString("USER_ROLE", role);
+            editor.apply();
+
             startActivity(intent);
             finish();
         }
     }
-
 
     private void hideKeyboard() {
         InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);

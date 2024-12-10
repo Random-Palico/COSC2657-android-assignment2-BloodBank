@@ -1,4 +1,4 @@
-package com.example.bloodbank;
+package com.example.bloodbank.activities.login_register;
 
 import android.os.Bundle;
 import android.view.MotionEvent;
@@ -9,6 +9,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.bloodbank.R;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 

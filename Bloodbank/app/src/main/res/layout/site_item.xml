@@ -1,0 +1,28 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/border_card"
+    android:layout_margin="8dp">
+
+    <!-- Short Name -->
+    <TextView
+        android:id="@+id/siteName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Site Short Name"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/black" />
+
+    <!-- Required Blood Details -->
+    <TextView
+        android:id="@+id/siteDetails"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Blood Types Required"
+        android:textSize="14sp"
+        android:textColor="@color/gray" />
+</LinearLayout>
