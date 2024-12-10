@@ -30,6 +30,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -179,7 +180,7 @@ public class AddCampaignActivity extends AppCompatActivity {
         }});
         campaignData.put("eventDate", selectedDate);
         campaignData.put("eventImg", imageUrl);
-        campaignData.put("requiredBloodTypes", bloodTypes);
+        campaignData.put("requiredBloodTypes", bloodTypes); campaignData.put("requiredBloodTypes", new ArrayList<>(List.of(bloodTypes)));
 
         db.collection("DonationSites").add(campaignData)
                 .addOnSuccessListener(documentReference -> {

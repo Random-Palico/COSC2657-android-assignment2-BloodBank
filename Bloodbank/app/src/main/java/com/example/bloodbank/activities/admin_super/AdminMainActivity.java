@@ -63,7 +63,7 @@ public class AdminMainActivity extends BaseActivity {
             }
             Intent intent = new Intent(this, AddCampaignActivity.class);
             intent.putExtra("USER_ROLE", finalRole);
-            startActivityForResult(intent, 100); // Launch with request code
+            startActivityForResult(intent, 100);
         });
 
         campaignList = findViewById(R.id.campaignList);
@@ -121,16 +121,15 @@ public class AdminMainActivity extends BaseActivity {
         for (DocumentSnapshot document : campaignDocuments) {
             String title = document.getString("siteName");
             String location = document.getString("shortName");
-            Timestamp eventTimestamp = document.getTimestamp("eventDate");
+            String eventDateStr = document.getString("eventDate");
             String eventImg = document.getString("eventImg");
 
-            if (title == null || eventTimestamp == null || location == null || eventImg == null) {
+            if (title == null || eventDateStr == null || location == null || eventImg == null) {
                 Log.e(TAG, "Missing data in Firestore document: " + document.getId());
                 continue;
             }
 
-            Date eventDate = eventTimestamp.toDate();
-            String formattedDate = new SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(eventDate);
+            String formattedDate = eventDateStr;
 
             addCampaignCard(campaignList, title, formattedDate, location, eventImg);
         }
