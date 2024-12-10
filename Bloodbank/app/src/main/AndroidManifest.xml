@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-
 
     <application
         android:allowBackup="true"
@@ -20,13 +18,18 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BloodBank"
         tools:targetApi="31">
-
-        <!-- Google Maps API Key -->
+        <activity
+            android:name=".handler.SiteAdapter"
+            android:exported="false" />
+        <activity
+            android:name=".activities.DonationSiteActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activities.CampaignDetailActivity"
+            android:exported="false" /> <!-- Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyC20Qm-7BJMhCDZCfpeMvn2Uf-d6puVyhk" />
-
-        <!-- Activities -->
+            android:value="AIzaSyC20Qm-7BJMhCDZCfpeMvn2Uf-d6puVyhk" /> <!-- Activities -->
         <activity
             android:name=".activities.admin_super.EditCampaignActivity"
             android:exported="false" />
@@ -59,10 +62,13 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".activities.admin_super.MapPickerActivity" android:exported="false" />
+        <activity
+            android:name=".activities.admin_super.MapPickerActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

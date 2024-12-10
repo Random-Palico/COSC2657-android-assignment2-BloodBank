@@ -17,16 +17,14 @@ import androidx.appcompat.widget.SearchView;
 
 import com.bumptech.glide.Glide;
 import com.example.bloodbank.R;
+import com.example.bloodbank.activities.CampaignDetailActivity;
 import com.example.bloodbank.handler.BaseActivity;
-import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 
 public class AdminMainActivity extends BaseActivity {
 
@@ -87,17 +85,29 @@ public class AdminMainActivity extends BaseActivity {
         fetchCampaigns();
     }
 
-    // Handle result from AddCampaignActivity
+    @Override
+    protected void onResume() {
+        super.onResume();
+        fetchCampaigns(); // Ensure data refresh when returning to this activity
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 100 && resultCode == RESULT_OK) {
-            fetchCampaigns();
+
+        if (resultCode == RESULT_OK) {
+            if (requestCode == 100) {
+                fetchCampaigns();
+                Toast.makeText(this, "Campaign added successfully!", Toast.LENGTH_SHORT).show();
+            } else if (requestCode == 200 || requestCode == 300) {
+                fetchCampaigns();
+                Toast.makeText(this, "Campaign updated successfully!", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
-
     private void fetchCampaigns() {
+        Log.d(TAG, "Fetching campaigns...");
         db.collection("DonationSites")
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
@@ -129,9 +139,7 @@ public class AdminMainActivity extends BaseActivity {
                 continue;
             }
 
-            String formattedDate = eventDateStr;
-
-            addCampaignCard(campaignList, title, formattedDate, location, eventImg);
+            addCampaignCard(campaignList, document, title, eventDateStr, location, eventImg);
         }
     }
 
@@ -152,7 +160,7 @@ public class AdminMainActivity extends BaseActivity {
         displayCampaigns(filteredCampaigns);
     }
 
-    private void addCampaignCard(LinearLayout campaignList, String title, String date, String location, String eventImg) {
+    private void addCampaignCard(LinearLayout campaignList, DocumentSnapshot document, String title, String date, String location, String eventImg) {
         LayoutInflater inflater = LayoutInflater.from(this);
         View cardView = inflater.inflate(R.layout.campaign_card, campaignList, false);
 
@@ -166,22 +174,62 @@ public class AdminMainActivity extends BaseActivity {
         campaignDate.setText(date);
         campaignLocation.setText(location);
 
-        Glide.with(this)
-                .load(eventImg)
-                .into(campaignImage);
+        Glide.with(this).load(eventImg).into(campaignImage);
 
         Button registerButton = cardView.findViewById(R.id.registerButton);
         registerButton.setVisibility(View.GONE);
 
         editButton.setVisibility(View.VISIBLE);
         editButton.setText("Edit");
+
         editButton.setOnClickListener(v -> {
             Intent intent = new Intent(this, EditCampaignActivity.class);
+            intent.putExtra("campaignId", document.getId());
             intent.putExtra("campaignTitle", title);
-            intent.putExtra("campaignDate", date);
-            intent.putExtra("campaignLocation", location);
+            intent.putExtra("campaignDescription", document.getString("description"));
+            intent.putExtra("campaignDate", document.getString("eventDate"));
             intent.putExtra("campaignImage", eventImg);
-            startActivity(intent);
+            intent.putExtra("campaignLocation", location);
+
+            Map<String, Object> locationLatLng = (Map<String, Object>) document.get("locationLatLng");
+            if (locationLatLng != null) {
+                double lat = (double) locationLatLng.get("lat");
+                double lng = (double) locationLatLng.get("lng");
+                intent.putExtra("latitude", lat);
+                intent.putExtra("longitude", lng);
+            }
+
+            ArrayList<String> bloodTypes = (ArrayList<String>) document.get("requiredBloodTypes");
+            intent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
+
+            startActivityForResult(intent, 200);
+        });
+
+        cardView.setOnClickListener(v -> {
+            Intent detailIntent = new Intent(this, CampaignDetailActivity.class);
+            detailIntent.putExtra("campaignId", document.getId());
+            detailIntent.putExtra("campaignTitle", title);
+            detailIntent.putExtra("campaignDescription", document.getString("description"));
+            detailIntent.putExtra("campaignDate", document.getString("eventDate"));
+            detailIntent.putExtra("campaignImage", eventImg);
+            detailIntent.putExtra("campaignLocation", location);
+
+            Map<String, Object> locationLatLng = (Map<String, Object>) document.get("locationLatLng");
+            if (locationLatLng != null) {
+                double lat = (double) locationLatLng.get("lat");
+                double lng = (double) locationLatLng.get("lng");
+                detailIntent.putExtra("latitude", lat);
+                detailIntent.putExtra("longitude", lng);
+            }
+
+            ArrayList<String> bloodTypes = (ArrayList<String>) document.get("requiredBloodTypes");
+            detailIntent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
+
+            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+            String role = sharedPreferences.getString("USER_ROLE", "user");
+            detailIntent.putExtra("USER_ROLE", role);
+
+            startActivityForResult(detailIntent, 300);
         });
 
         campaignList.addView(cardView);
