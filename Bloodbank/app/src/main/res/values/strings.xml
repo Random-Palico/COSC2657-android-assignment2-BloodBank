@@ -6,4 +6,6 @@
     <string name="campaign_date_desc">Campaign Date</string>
     <string name="campaign_location_desc">Campaign Location</string>
     <string name="register_button_desc">Register Button</string>
+    <string name="profile_picture_desc">Profile Picture</string>
+    <string name="notification_icon_desc">Notification Icon</string>
 </resources>

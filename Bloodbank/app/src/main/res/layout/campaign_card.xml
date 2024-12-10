@@ -63,6 +63,15 @@
                 android:backgroundTint="@color/red"
                 android:text="Register"
                 android:textColor="@android:color/white" />
+
+            <Button
+                android:id="@+id/editButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:backgroundTint="@color/red"
+                android:text="Edit"
+                android:textColor="@android:color/white" />
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>
