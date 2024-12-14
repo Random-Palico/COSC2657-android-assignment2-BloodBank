@@ -23,7 +23,7 @@ import java.util.ArrayList;
 
 public class CampaignDetailActivity extends AppCompatActivity implements OnMapReadyCallback {
 
-    private TextView titleView, dateView, locationView, descriptionView, bloodTypesView;
+    private TextView titleView, dateView, locationView, addressView, descriptionView, bloodTypesView;
     private ImageView campaignImageView;
     private Button editButton, registerButton;
     private MapView mapView;
@@ -41,6 +41,7 @@ public class CampaignDetailActivity extends AppCompatActivity implements OnMapRe
         titleView = findViewById(R.id.campaignTitle);
         dateView = findViewById(R.id.campaignDate);
         locationView = findViewById(R.id.campaignLocation);
+        addressView = findViewById(R.id.campaignAddress);
         descriptionView = findViewById(R.id.campaignDescription);
         bloodTypesView = findViewById(R.id.requiredBloodTypes);
         campaignImageView = findViewById(R.id.campaignImage);
@@ -55,6 +56,7 @@ public class CampaignDetailActivity extends AppCompatActivity implements OnMapRe
         String description = intent.getStringExtra("campaignDescription");
         String date = intent.getStringExtra("campaignDate");
         String location = intent.getStringExtra("campaignLocation");
+        String address = intent.getStringExtra("campaignAddress");
         String imageUrl = intent.getStringExtra("campaignImage");
         double lat = intent.getDoubleExtra("latitude", 0);
         double lng = intent.getDoubleExtra("longitude", 0);
@@ -66,6 +68,7 @@ public class CampaignDetailActivity extends AppCompatActivity implements OnMapRe
         titleView.setText(title);
         dateView.setText(date);
         locationView.setText(location);
+        addressView.setText(address);
         descriptionView.setText(description);
         if (bloodTypes != null) {
             bloodTypesView.setText("Required Blood Types: " + String.join(", ", bloodTypes));
@@ -97,6 +100,7 @@ public class CampaignDetailActivity extends AppCompatActivity implements OnMapRe
             editIntent.putExtra("campaignDate", date);
             editIntent.putExtra("campaignImage", imageUrl);
             editIntent.putExtra("campaignLocation", location);
+            editIntent.putExtra("campaignAddress", address);
             editIntent.putExtra("latitude", campaignLatLng.latitude);
             editIntent.putExtra("longitude", campaignLatLng.longitude);
             editIntent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);

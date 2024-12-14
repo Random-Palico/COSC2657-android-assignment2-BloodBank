@@ -2,10 +2,8 @@ package com.example.bloodbank.activities;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SearchView;
@@ -22,6 +20,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -49,7 +48,7 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
     private List<DocumentSnapshot> filteredSites;
     private HashMap<Marker, DocumentSnapshot> markerSiteMap;
 
-    private Location userLocation;
+    private LatLng userLatLng;
     private SearchView searchView;
 
     @Override
@@ -87,9 +86,7 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
         siteListRecyclerView.setAdapter(siteAdapter);
 
         SupportMapFragment mapFragment = new SupportMapFragment();
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.mapFragmentContainer, mapFragment)
-                .commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.mapFragmentContainer, mapFragment).commit();
 
         mapFragment.getMapAsync(this);
 
@@ -103,20 +100,22 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
             return;
         }
 
-        fusedLocationClient.getLastLocation()
-                .addOnSuccessListener(location -> {
-                    if (location != null) {
-                        userLocation = location;
-                        LatLng userLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-                        if (mMap != null) {
-                            mMap.addMarker(new MarkerOptions().position(userLatLng).title("Your Location"));
-                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 12));
-                        }
-                    } else {
-                        Toast.makeText(this, "Unable to fetch your location", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to get user location", e));
+        fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+            if (location != null) {
+                userLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+                if (mMap != null) {
+                    addUserLocationMarker();
+                    populateMap();
+                }
+            }
+        }).addOnFailureListener(e -> Log.e(TAG, "Failed to get user location", e));
+    }
+
+    private void addUserLocationMarker() {
+        if (userLatLng != null) {
+            mMap.addMarker(new MarkerOptions().position(userLatLng).title("Your Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 12));
+        }
     }
 
     private void filterSites(String query) {
@@ -125,9 +124,7 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
             filteredSites.addAll(donationSites);
         } else {
             filteredSites.clear();
-            filteredSites.addAll(donationSites.stream()
-                    .filter(site -> site.getString("shortName").toLowerCase().contains(query.toLowerCase()))
-                    .collect(Collectors.toList()));
+            filteredSites.addAll(donationSites.stream().filter(site -> site.getString("shortName").toLowerCase().contains(query.toLowerCase())).collect(Collectors.toList()));
         }
         siteAdapter.notifyDataSetChanged();
     }
@@ -154,33 +151,28 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
     }
 
     private void fetchDonationSites() {
-        db.collection("DonationSites").get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    donationSites.clear();
-                    donationSites.addAll(queryDocumentSnapshots.getDocuments());
-                    filteredSites.clear();
-                    filteredSites.addAll(donationSites);
-                    siteAdapter.notifyDataSetChanged();
-                    populateMap();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error fetching donation sites", e);
-                    Toast.makeText(this, "Error loading sites", Toast.LENGTH_SHORT).show();
-                });
+        db.collection("DonationSites").get().addOnSuccessListener(queryDocumentSnapshots -> {
+            donationSites.clear();
+            donationSites.addAll(queryDocumentSnapshots.getDocuments());
+            filteredSites.clear();
+            filteredSites.addAll(donationSites);
+            siteAdapter.notifyDataSetChanged();
+            populateMap();
+        }).addOnFailureListener(e -> Log.e(TAG, "Error fetching donation sites", e));
     }
 
     private void populateMap() {
-        if (mMap == null) return;
+        if (mMap == null || userLatLng == null) return;
+
+        addUserLocationMarker();
 
         for (DocumentSnapshot site : donationSites) {
             String shortName = site.getString("shortName");
+            String address = site.getString("address");
             HashMap<String, Double> location = (HashMap<String, Double>) site.get("locationLatLng");
             if (shortName != null && location != null) {
                 LatLng latLng = new LatLng(location.get("lat"), location.get("lng"));
-                Marker marker = mMap.addMarker(new MarkerOptions()
-                        .position(latLng)
-                        .title(shortName)
-                        .snippet("Click for details"));
+                Marker marker = mMap.addMarker(new MarkerOptions().position(latLng).title(shortName).snippet(address).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
                 markerSiteMap.put(marker, site);
             }
         }
@@ -204,24 +196,18 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
     }
 
     private void drawRouteToLocation(LatLng destination) {
-        if (userLocation != null) {
-            LatLng userLatLng = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
-            PolylineOptions options = new PolylineOptions()
-                    .add(userLatLng)
-                    .add(destination)
-                    .color(android.graphics.Color.RED)
-                    .width(8);
+        if (userLatLng != null) {
+            PolylineOptions options = new PolylineOptions().add(userLatLng).add(destination).color(android.graphics.Color.RED).width(8);
             mMap.addPolyline(options);
-        } else {
-            Toast.makeText(this, "Unable to determine your location.", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void showSiteDetails(DocumentSnapshot siteData) {
         String shortName = siteData.getString("shortName");
+        String address = siteData.getString("address");
         List<String> bloodTypes = (List<String>) siteData.get("requiredBloodTypes");
 
-        String details = "Short Name: " + shortName + "\nRequired Blood Types: " + (bloodTypes != null ? bloodTypes.toString() : "N/A");
-        Toast.makeText(this, details, Toast.LENGTH_LONG).show();
+        String details = "Short Name: " + shortName + "\nAddress: " + address + "\nRequired Blood Types: " + (bloodTypes != null ? bloodTypes.toString() : "N/A");
+        Log.d(TAG, details);
     }
 }

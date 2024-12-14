@@ -3,8 +3,8 @@ package com.example.bloodbank.activities.admin_super;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,7 +21,6 @@ public class MapPickerActivity extends AppCompatActivity implements OnMapReadyCa
     private MapView mapView;
     private GoogleMap mMap;
     private LatLng selectedLatLng;
-    private String shortName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,16 +28,14 @@ public class MapPickerActivity extends AppCompatActivity implements OnMapReadyCa
         setContentView(R.layout.activity_map_picker);
 
         mapView = findViewById(R.id.mapView);
-        Button confirmButton = findViewById(R.id.confirmButton);
-
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
 
-        confirmButton.setOnClickListener(v -> {
+        findViewById(R.id.confirmButton).setOnClickListener(v -> {
             if (selectedLatLng != null) {
-                promptForShortName();
+                promptForDetails();
             } else {
-                showToast("Please select a location on the map.");
+                Toast.makeText(this, "Please select a location on the map.", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -47,7 +44,7 @@ public class MapPickerActivity extends AppCompatActivity implements OnMapReadyCa
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Set a default location which is Saigon
+        // default location to saigon - may change later
         LatLng defaultLocation = new LatLng(10.7769, 106.7009);
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 15));
 
@@ -58,31 +55,45 @@ public class MapPickerActivity extends AppCompatActivity implements OnMapReadyCa
         });
     }
 
-    private void promptForShortName() {
-        EditText input = new EditText(this);
-        input.setHint("Enter a short name for the location");
+    private void promptForDetails() {
+        // Input box for name and address
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 20, 50, 20);
 
-        new AlertDialog.Builder(this).setTitle("Short Name for Location").setMessage("Please provide a short name for the selected location.").setView(input).setPositiveButton("Confirm", (dialog, which) -> {
-            shortName = input.getText().toString().trim();
-            if (!shortName.isEmpty()) {
-                returnLocationData();
-            } else {
-                showToast("Short name cannot be empty.");
-            }
-        }).setNegativeButton("Cancel", null).show();
+        EditText shortNameInput = new EditText(this);
+        shortNameInput.setHint("Enter a short name");
+        layout.addView(shortNameInput);
+
+        EditText addressInput = new EditText(this);
+        addressInput.setHint("Enter the address");
+        layout.addView(addressInput);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Location Details")
+                .setView(layout)
+                .setPositiveButton("Confirm", (dialog, which) -> {
+                    String shortName = shortNameInput.getText().toString().trim();
+                    String address = addressInput.getText().toString().trim();
+
+                    if (shortName.isEmpty() || address.isEmpty()) {
+                        Toast.makeText(this, "Both short name and address are required.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    returnLocationData(shortName, address);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
-    private void returnLocationData() {
+    private void returnLocationData(String shortName, String address) {
         Intent data = new Intent();
         data.putExtra("latitude", selectedLatLng.latitude);
         data.putExtra("longitude", selectedLatLng.longitude);
         data.putExtra("shortName", shortName);
+        data.putExtra("address", address);
         setResult(RESULT_OK, data);
         finish();
-    }
-
-    private void showToast(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -101,11 +112,5 @@ public class MapPickerActivity extends AppCompatActivity implements OnMapReadyCa
     protected void onDestroy() {
         super.onDestroy();
         mapView.onDestroy();
-    }
-
-    @Override
-    public void onLowMemory() {
-        super.onLowMemory();
-        mapView.onLowMemory();
     }
 }

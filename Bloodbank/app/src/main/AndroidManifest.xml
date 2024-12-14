@@ -26,10 +26,10 @@
             android:exported="false" />
         <activity
             android:name=".activities.CampaignDetailActivity"
-            android:exported="false" /> <!-- Google Maps API Key -->
+            android:exported="false" />
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyC20Qm-7BJMhCDZCfpeMvn2Uf-d6puVyhk" /> <!-- Activities -->
+            android:value="AIzaSyC20Qm-7BJMhCDZCfpeMvn2Uf-d6puVyhk" />
         <activity
             android:name=".activities.admin_super.EditCampaignActivity"
             android:exported="false" />

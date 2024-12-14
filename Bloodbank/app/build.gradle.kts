@@ -38,6 +38,8 @@ android {
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.android.gms:play-services-maps:18.1.0")
+    implementation ("com.google.maps.android:android-maps-utils:2.4.0")
+
 
     // Firebase SDKs
     implementation("com.google.firebase:firebase-auth")
@@ -50,6 +52,7 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation(libs.play.services.location)
+    implementation(libs.places)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

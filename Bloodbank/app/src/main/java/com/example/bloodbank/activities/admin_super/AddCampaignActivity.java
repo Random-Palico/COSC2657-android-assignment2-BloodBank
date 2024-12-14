@@ -42,7 +42,7 @@ public class AddCampaignActivity extends AppCompatActivity {
     private ImageView selectedImageView;
     private TextView locationPreview;
     private Bitmap selectedImageBitmap;
-    private String selectedDate, selectedShortName;
+    private String selectedDate, selectedShortName, selectedAddress;
     private LatLng selectedLatLng;
     private Uri selectedImageUri;
 
@@ -68,21 +68,19 @@ public class AddCampaignActivity extends AppCompatActivity {
 
         dateButton.setOnClickListener(v -> showDatePicker());
 
-        ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        try {
-                            selectedImageUri = result.getData().getData();
-                            selectedImageBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImageUri);
-                            selectedImageView.setImageBitmap(selectedImageBitmap);
-                            selectedImageView.setVisibility(View.VISIBLE);
-                        } catch (Exception e) {
-                            Toast.makeText(this, "Error selecting image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                            e.printStackTrace();
-                        }
-                    }
-                });
+        ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                try {
+                    selectedImageUri = result.getData().getData();
+                    selectedImageBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImageUri);
+                    selectedImageView.setImageBitmap(selectedImageBitmap);
+                    selectedImageView.setVisibility(View.VISIBLE);
+                } catch (Exception e) {
+                    Toast.makeText(this, "Error selecting image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    e.printStackTrace();
+                }
+            }
+        });
 
         imageButton.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
@@ -115,23 +113,15 @@ public class AddCampaignActivity extends AppCompatActivity {
             double lat = data.getDoubleExtra("latitude", 0);
             double lng = data.getDoubleExtra("longitude", 0);
             selectedShortName = data.getStringExtra("shortName");
+            selectedAddress = data.getStringExtra("address");
             selectedLatLng = new LatLng(lat, lng);
-            locationPreview.setText("Short Name: " + selectedShortName + "\nLat: " + lat + ", Lng: " + lng);
+            locationPreview.setText("Short Name: " + selectedShortName + "\nAddress: " + selectedAddress + "\nLat: " + lat + ", Lng: " + lng);
         }
     }
 
     private String[] getSelectedBloodTypes() {
         ArrayList<String> selectedTypes = new ArrayList<>();
-        CheckBox[] checkBoxes = {
-                findViewById(R.id.bloodAPlus),
-                findViewById(R.id.bloodAMinus),
-                findViewById(R.id.bloodBPlus),
-                findViewById(R.id.bloodBMinus),
-                findViewById(R.id.bloodOPlus),
-                findViewById(R.id.bloodOMinus),
-                findViewById(R.id.bloodABPlus),
-                findViewById(R.id.bloodABMinus)
-        };
+        CheckBox[] checkBoxes = {findViewById(R.id.bloodAPlus), findViewById(R.id.bloodAMinus), findViewById(R.id.bloodBPlus), findViewById(R.id.bloodBMinus), findViewById(R.id.bloodOPlus), findViewById(R.id.bloodOMinus), findViewById(R.id.bloodABPlus), findViewById(R.id.bloodABMinus)};
 
         for (CheckBox checkBox : checkBoxes) {
             if (checkBox.isChecked()) {
@@ -146,15 +136,15 @@ public class AddCampaignActivity extends AppCompatActivity {
         String description = descriptionField.getText().toString().trim();
         String[] requiredBloodTypes = getSelectedBloodTypes();
 
-        if (title.isEmpty() || description.isEmpty() || selectedDate == null || selectedLatLng == null || selectedImageBitmap == null || requiredBloodTypes.length == 0) {
+        if (title.isEmpty() || description.isEmpty() || selectedDate == null || selectedLatLng == null || selectedImageBitmap == null || requiredBloodTypes.length == 0 || selectedAddress == null) {
             Toast.makeText(this, "All fields are required!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        uploadImageAndSaveCampaign(title, selectedShortName, description, requiredBloodTypes);
+        uploadImageAndSaveCampaign(title, selectedShortName, selectedAddress, description, requiredBloodTypes);
     }
 
-    private void uploadImageAndSaveCampaign(String title, String shortName, String description, String[] bloodTypes) {
+    private void uploadImageAndSaveCampaign(String title, String shortName, String address, String description, String[] bloodTypes) {
         String imagePath = "campaigns/" + System.currentTimeMillis() + ".jpg";
         StorageReference storageRef = storage.getReference().child(imagePath);
 
@@ -162,17 +152,16 @@ public class AddCampaignActivity extends AppCompatActivity {
         selectedImageBitmap.compress(Bitmap.CompressFormat.JPEG, 80, baos);
         byte[] imageData = baos.toByteArray();
 
-        storageRef.putBytes(imageData)
-                .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                    saveCampaignToFirestore(title, shortName, description, uri.toString(), bloodTypes);
-                }))
-                .addOnFailureListener(e -> Toast.makeText(this, "Error uploading image: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        storageRef.putBytes(imageData).addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+            saveCampaignToFirestore(title, shortName, address, description, uri.toString(), bloodTypes);
+        })).addOnFailureListener(e -> Toast.makeText(this, "Error uploading image: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-    private void saveCampaignToFirestore(String title, String shortName, String description, String imageUrl, String[] bloodTypes) {
+    private void saveCampaignToFirestore(String title, String shortName, String address, String description, String imageUrl, String[] bloodTypes) {
         Map<String, Object> campaignData = new HashMap<>();
         campaignData.put("siteName", title);
         campaignData.put("shortName", shortName);
+        campaignData.put("address", address);
         campaignData.put("description", description);
         campaignData.put("locationLatLng", new HashMap<String, Double>() {{
             put("lat", selectedLatLng.latitude);
@@ -180,14 +169,12 @@ public class AddCampaignActivity extends AppCompatActivity {
         }});
         campaignData.put("eventDate", selectedDate);
         campaignData.put("eventImg", imageUrl);
-        campaignData.put("requiredBloodTypes", bloodTypes); campaignData.put("requiredBloodTypes", new ArrayList<>(List.of(bloodTypes)));
+        campaignData.put("requiredBloodTypes", new ArrayList<>(List.of(bloodTypes)));
 
-        db.collection("DonationSites").add(campaignData)
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(this, "Campaign added successfully!", Toast.LENGTH_SHORT).show();
-                    setResult(RESULT_OK);
-                    finish();
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Error adding campaign: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        db.collection("DonationSites").add(campaignData).addOnSuccessListener(documentReference -> {
+            Toast.makeText(this, "Campaign added successfully!", Toast.LENGTH_SHORT).show();
+            setResult(RESULT_OK);
+            finish();
+        }).addOnFailureListener(e -> Toast.makeText(this, "Error adding campaign: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 }

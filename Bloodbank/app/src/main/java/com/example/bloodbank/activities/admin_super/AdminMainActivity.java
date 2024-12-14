@@ -88,7 +88,7 @@ public class AdminMainActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        fetchCampaigns(); // Ensure data refresh when returning to this activity
+        fetchCampaigns();
     }
 
     @Override
@@ -108,22 +108,19 @@ public class AdminMainActivity extends BaseActivity {
 
     private void fetchCampaigns() {
         Log.d(TAG, "Fetching campaigns...");
-        db.collection("DonationSites")
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (querySnapshot.isEmpty()) {
-                        Toast.makeText(this, "No campaigns available!", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+        db.collection("DonationSites").get().addOnSuccessListener(querySnapshot -> {
+            if (querySnapshot.isEmpty()) {
+                Toast.makeText(this, "No campaigns available!", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-                    campaigns.clear();
-                    campaigns.addAll(querySnapshot.getDocuments());
-                    displayCampaigns(campaigns);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error fetching campaigns", e);
-                    Toast.makeText(this, "Error fetching campaigns: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+            campaigns.clear();
+            campaigns.addAll(querySnapshot.getDocuments());
+            displayCampaigns(campaigns);
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error fetching campaigns", e);
+            Toast.makeText(this, "Error fetching campaigns: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void displayCampaigns(List<DocumentSnapshot> campaignDocuments) {
@@ -134,12 +131,14 @@ public class AdminMainActivity extends BaseActivity {
             String eventDateStr = document.getString("eventDate");
             String eventImg = document.getString("eventImg");
 
+            String address = document.getString("address");
+
             if (title == null || eventDateStr == null || location == null || eventImg == null) {
                 Log.e(TAG, "Missing data in Firestore document: " + document.getId());
                 continue;
             }
 
-            addCampaignCard(campaignList, document, title, eventDateStr, location, eventImg);
+            addCampaignCard(campaignList, document, title, eventDateStr, location, eventImg, address);
         }
     }
 
@@ -160,7 +159,7 @@ public class AdminMainActivity extends BaseActivity {
         displayCampaigns(filteredCampaigns);
     }
 
-    private void addCampaignCard(LinearLayout campaignList, DocumentSnapshot document, String title, String date, String location, String eventImg) {
+    private void addCampaignCard(LinearLayout campaignList, DocumentSnapshot document, String title, String date, String location, String eventImg, String address) {
         LayoutInflater inflater = LayoutInflater.from(this);
         View cardView = inflater.inflate(R.layout.campaign_card, campaignList, false);
 
@@ -190,6 +189,7 @@ public class AdminMainActivity extends BaseActivity {
             intent.putExtra("campaignDate", document.getString("eventDate"));
             intent.putExtra("campaignImage", eventImg);
             intent.putExtra("campaignLocation", location);
+            intent.putExtra("campaignAddress", address);
 
             Map<String, Object> locationLatLng = (Map<String, Object>) document.get("locationLatLng");
             if (locationLatLng != null) {
@@ -213,6 +213,7 @@ public class AdminMainActivity extends BaseActivity {
             detailIntent.putExtra("campaignDate", document.getString("eventDate"));
             detailIntent.putExtra("campaignImage", eventImg);
             detailIntent.putExtra("campaignLocation", location);
+            detailIntent.putExtra("campaignAddress", address);
 
             Map<String, Object> locationLatLng = (Map<String, Object>) document.get("locationLatLng");
             if (locationLatLng != null) {
