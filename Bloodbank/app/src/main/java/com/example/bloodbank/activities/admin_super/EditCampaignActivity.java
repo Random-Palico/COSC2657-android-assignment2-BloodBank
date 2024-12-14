@@ -183,11 +183,16 @@ public class EditCampaignActivity extends AppCompatActivity {
             put("lng", selectedLatLng.longitude);
         }});
 
-        db.collection("DonationSites").document(campaignId).update(updatedData).addOnSuccessListener(aVoid -> {
-            Toast.makeText(this, "Campaign updated successfully!", Toast.LENGTH_SHORT).show();
-            setResult(RESULT_OK);
-            finish();
-        }).addOnFailureListener(e -> Toast.makeText(this, "Error updating campaign: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        db.collection("DonationSites").document(campaignId).update(updatedData)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Campaign updated successfully!", Toast.LENGTH_SHORT).show();
+
+                    Intent intent = new Intent(this, AdminMainActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    finish();
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Error updating campaign: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
     @Override
