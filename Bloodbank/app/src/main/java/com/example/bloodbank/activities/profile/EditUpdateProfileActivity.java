@@ -2,6 +2,7 @@ package com.example.bloodbank.activities.profile;
 
 import android.app.DatePickerDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -25,6 +26,7 @@ import com.google.firebase.storage.StorageReference;
 import java.io.ByteArrayOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -151,6 +153,7 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
         updates.put("bloodType", selectedBloodType);
 
         db.collection("Users").document(userId).update(updates).addOnSuccessListener(aVoid -> {
+            updateSharedPreferences(updates);
             if (selectedImageBitmap != null) {
                 uploadProfileImage(userId);
             } else {
@@ -161,12 +164,18 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
         }).addOnFailureListener(e -> Toast.makeText(this, "Error updating profile: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-    private void uploadProfileImage(String userId) {
-        if (selectedImageBitmap == null) {
-            Toast.makeText(this, "No image selected!", Toast.LENGTH_SHORT).show();
-            return;
-        }
+    private void updateSharedPreferences(Map<String, Object> updates) {
+        SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
 
+        if (updates.containsKey("name")) {
+            editor.putString("USER_NAME", updates.get("name").toString());
+        }
+        editor.apply();
+    }
+
+
+    private void uploadProfileImage(String userId) {
         String path = "profile/" + userId + "/profile.jpg";
         StorageReference storageRef = storage.getReference(path);
 
@@ -177,12 +186,14 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
         storageRef.putBytes(data)
                 .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
                     db.collection("Users").document(userId).update("profileImage", uri.toString());
+                    updateSharedPreferences(Collections.singletonMap("profileImage", uri.toString()));
                     Toast.makeText(this, "Profile updated successfully!", Toast.LENGTH_SHORT).show();
                     setResult(RESULT_OK);
                     finish();
                 }))
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to upload image: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
+
 
     private void selectImage() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);

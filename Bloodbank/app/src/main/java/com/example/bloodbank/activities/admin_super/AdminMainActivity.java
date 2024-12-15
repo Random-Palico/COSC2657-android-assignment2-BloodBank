@@ -19,6 +19,7 @@ import androidx.appcompat.widget.SearchView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.bloodbank.R;
+import com.example.bloodbank.activities.CampaignDetailActivity;
 import com.example.bloodbank.handler.BaseActivity;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -45,18 +46,20 @@ public class AdminMainActivity extends BaseActivity {
 
         setupBottomNavigation();
 
-        TextView welcomeUser = findViewById(R.id.welcomeUser);
         profileImage = findViewById(R.id.profileImage);
         String userName = getIntent().getStringExtra("USER_NAME");
         String role = getIntent().getStringExtra("USER_ROLE");
 
         if (userName == null || role == null) {
             SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-            userName = sharedPreferences.getString("USER_NAME", "Admin");
-            role = sharedPreferences.getString("USER_ROLE", "admin");
+            userName = sharedPreferences.getString("USER_NAME", "User");
+            role = sharedPreferences.getString("USER_ROLE", "user");
         }
 
-        welcomeUser.setText(userName != null ? "Hi " + userName : "Hi Admin");
+        // Update the UI dynamically based on the retrieved name and role
+        TextView welcomeUser = findViewById(R.id.welcomeUser);
+        welcomeUser.setText("Hi " + userName);
+
 
         fetchProfileImage();
 
@@ -105,14 +108,18 @@ public class AdminMainActivity extends BaseActivity {
 
         if (resultCode == RESULT_OK) {
             if (requestCode == 100) {
-                fetchCampaigns();
-                Toast.makeText(this, "Campaign added successfully!", Toast.LENGTH_SHORT).show();
+                SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+                String userName = sharedPreferences.getString("USER_NAME", "Admin");
+                TextView welcomeUser = findViewById(R.id.welcomeUser);
+                welcomeUser.setText("Hi " + userName);
+                fetchProfileImage();
             } else if (requestCode == 200 || requestCode == 300) {
                 fetchCampaigns();
                 Toast.makeText(this, "Campaign updated successfully!", Toast.LENGTH_SHORT).show();
             }
         }
     }
+
 
     private void fetchProfileImage() {
         String userEmail = getSharedPreferences("LoginPrefs", MODE_PRIVATE).getString("USER_EMAIL", null);
@@ -258,8 +265,39 @@ public class AdminMainActivity extends BaseActivity {
         assignButton.setText("Assign");
         assignButton.setOnClickListener(v -> showAssignPopup(document.getId(), title));
 
+        cardView.setOnClickListener(v -> {
+            Intent intent = new Intent(this, CampaignDetailActivity.class);
+            intent.putExtra("campaignId", document.getId());
+            intent.putExtra("campaignTitle", title);
+            intent.putExtra("campaignDescription", document.getString("description"));
+            intent.putExtra("campaignDate", document.getString("eventDate"));
+            intent.putExtra("campaignImage", eventImg);
+            intent.putExtra("campaignLocation", location);
+            intent.putExtra("campaignAddress", address);
+
+            Map<String, Object> locationLatLng = (Map<String, Object>) document.get("locationLatLng");
+            if (locationLatLng != null) {
+                double lat = (double) locationLatLng.get("lat");
+                double lng = (double) locationLatLng.get("lng");
+                intent.putExtra("latitude", lat);
+                intent.putExtra("longitude", lng);
+            }
+
+            ArrayList<String> bloodTypes = (ArrayList<String>) document.get("requiredBloodTypes");
+            intent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
+
+            // Retrieve role from SharedPreferences
+            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+            String role = sharedPreferences.getString("USER_ROLE", "donor");
+            intent.putExtra("USER_ROLE", role);
+
+            startActivity(intent);
+        });
+
+
         campaignList.addView(cardView);
     }
+
 
     private void showAssignPopup(String campaignId, String campaignTitle) {
         FirebaseFirestore.getInstance()

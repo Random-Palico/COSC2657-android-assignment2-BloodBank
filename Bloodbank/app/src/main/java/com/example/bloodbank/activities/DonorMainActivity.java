@@ -1,5 +1,7 @@
 package com.example.bloodbank.activities;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -22,6 +24,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class DonorMainActivity extends BaseActivity {
 
@@ -45,6 +48,22 @@ public class DonorMainActivity extends BaseActivity {
         fetchCampaigns();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode == RESULT_OK) {
+            if (requestCode == 100) {
+                SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+                String userName = sharedPreferences.getString("USER_NAME", "Donor");
+                TextView welcomeUser = findViewById(R.id.welcomeUser);
+                welcomeUser.setText("Hi " + userName);
+                fetchProfileImage();
+            }
+        }
+    }
+
+
     private void initializeViews() {
         // Get user name and role from intent
         TextView welcomeUser = findViewById(R.id.welcomeUser);
@@ -52,9 +71,12 @@ public class DonorMainActivity extends BaseActivity {
         campaignList = findViewById(R.id.campaignList);
 
         String userName = getIntent().getStringExtra("USER_NAME");
-        String role = getIntent().getStringExtra("USER_ROLE");
-
+        if (userName == null) {
+            userName = getSharedPreferences("LoginPrefs", MODE_PRIVATE).getString("USER_NAME", "Donor");
+        }
         welcomeUser.setText(userName != null ? "Hi " + userName : "Hi Donor");
+
+        getIntent().getStringExtra("USER_ROLE");
 
         fetchProfileImage();
 
@@ -198,6 +220,8 @@ public class DonorMainActivity extends BaseActivity {
 
         Glide.with(this).load(eventImg).into(campaignImage);
 
+        String address = document.getString("address");
+
         // Register button visible for donors
         registerButton.setVisibility(View.VISIBLE);
         registerButton.setOnClickListener(v -> Toast.makeText(this, "Registered for " + title, Toast.LENGTH_SHORT).show());
@@ -207,7 +231,37 @@ public class DonorMainActivity extends BaseActivity {
         assignButton.setVisibility(View.GONE);
 
         campaignList.addView(cardView);
+
+        cardView.setOnClickListener(v -> {
+            Intent intent = new Intent(this, CampaignDetailActivity.class);
+            intent.putExtra("campaignId", document.getId());
+            intent.putExtra("campaignTitle", title);
+            intent.putExtra("campaignDescription", document.getString("description"));
+            intent.putExtra("campaignDate", date);
+            intent.putExtra("campaignImage", eventImg);
+            intent.putExtra("campaignLocation", location);
+            intent.putExtra("campaignAddress", address);
+
+            Map<String, Object> locationLatLng = (Map<String, Object>) document.get("locationLatLng");
+            if (locationLatLng != null) {
+                double lat = (double) locationLatLng.get("lat");
+                double lng = (double) locationLatLng.get("lng");
+                intent.putExtra("latitude", lat);
+                intent.putExtra("longitude", lng);
+            }
+
+            ArrayList<String> bloodTypes = (ArrayList<String>) document.get("requiredBloodTypes");
+            intent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
+
+            // Retrieve role from SharedPreferences
+            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+            String role = sharedPreferences.getString("USER_ROLE", "donor");
+            intent.putExtra("USER_ROLE", role);
+
+            startActivity(intent);
+        });
     }
+
 }
 
 
