@@ -6,7 +6,6 @@ import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.widget.SearchView;
 import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -49,7 +48,6 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
     private HashMap<Marker, DocumentSnapshot> markerSiteMap;
 
     private LatLng userLatLng;
-    private SearchView searchView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,21 +62,6 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
         donationSites = new ArrayList<>();
         filteredSites = new ArrayList<>();
         markerSiteMap = new HashMap<>();
-
-        searchView = findViewById(R.id.searchView);
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                filterSites(query);
-                return false;
-            }
-
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                filterSites(newText);
-                return false;
-            }
-        });
 
         siteListRecyclerView = findViewById(R.id.siteListRecyclerView);
         siteListRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -97,6 +80,7 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
     private void getUserLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQUEST_CODE);
+            populateMap();
             return;
         }
 
@@ -105,15 +89,21 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
                 userLatLng = new LatLng(location.getLatitude(), location.getLongitude());
                 if (mMap != null) {
                     addUserLocationMarker();
-                    populateMap();
                 }
             }
-        }).addOnFailureListener(e -> Log.e(TAG, "Failed to get user location", e));
+            populateMap();
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Failed to get user location", e);
+            populateMap();
+        });
     }
 
     private void addUserLocationMarker() {
         if (userLatLng != null) {
-            mMap.addMarker(new MarkerOptions().position(userLatLng).title("Your Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+            mMap.addMarker(new MarkerOptions()
+                    .position(userLatLng)
+                    .title("Your Location")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 12));
         }
     }
@@ -124,7 +114,9 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
             filteredSites.addAll(donationSites);
         } else {
             filteredSites.clear();
-            filteredSites.addAll(donationSites.stream().filter(site -> site.getString("shortName").toLowerCase().contains(query.toLowerCase())).collect(Collectors.toList()));
+            filteredSites.addAll(donationSites.stream()
+                    .filter(site -> site.getString("shortName").toLowerCase().contains(query.toLowerCase()))
+                    .collect(Collectors.toList()));
         }
         siteAdapter.notifyDataSetChanged();
     }
@@ -141,6 +133,7 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
         Log.d(TAG, "Map is ready");
+
         mMap.setOnMarkerClickListener(marker -> {
             DocumentSnapshot siteData = markerSiteMap.get(marker);
             if (siteData != null) {
@@ -162,9 +155,11 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
     }
 
     private void populateMap() {
-        if (mMap == null || userLatLng == null) return;
+        if (mMap == null) return;
 
-        addUserLocationMarker();
+        if (userLatLng != null) {
+            addUserLocationMarker();
+        }
 
         for (DocumentSnapshot site : donationSites) {
             String shortName = site.getString("shortName");
@@ -172,8 +167,20 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
             HashMap<String, Double> location = (HashMap<String, Double>) site.get("locationLatLng");
             if (shortName != null && location != null) {
                 LatLng latLng = new LatLng(location.get("lat"), location.get("lng"));
-                Marker marker = mMap.addMarker(new MarkerOptions().position(latLng).title(shortName).snippet(address).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+                Marker marker = mMap.addMarker(new MarkerOptions()
+                        .position(latLng)
+                        .title(shortName)
+                        .snippet(address)
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
                 markerSiteMap.put(marker, site);
+            }
+        }
+
+        if (!donationSites.isEmpty()) {
+            HashMap<String, Double> firstLocation = (HashMap<String, Double>) donationSites.get(0).get("locationLatLng");
+            if (firstLocation != null) {
+                LatLng firstLatLng = new LatLng(firstLocation.get("lat"), firstLocation.get("lng"));
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(firstLatLng, 12));
             }
         }
 
@@ -197,7 +204,11 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
 
     private void drawRouteToLocation(LatLng destination) {
         if (userLatLng != null) {
-            PolylineOptions options = new PolylineOptions().add(userLatLng).add(destination).color(android.graphics.Color.RED).width(8);
+            PolylineOptions options = new PolylineOptions()
+                    .add(userLatLng)
+                    .add(destination)
+                    .color(android.graphics.Color.RED)
+                    .width(8);
             mMap.addPolyline(options);
         }
     }

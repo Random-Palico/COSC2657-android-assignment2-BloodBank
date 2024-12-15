@@ -32,7 +32,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyC20Qm-7BJMhCDZCfpeMvn2Uf-d6puVyhk" />
+            android:value="AIzaSyC7uUil22WO6t-Yswk1_oI2c54dpVzQyB0" />
 
         <activity
             android:name=".activities.admin_super.EditCampaignActivity"
@@ -74,9 +74,6 @@
             android:exported="false" />
         <activity
             android:name=".activities.DonorManagement.DonorDetailActivity"
-            android:exported="false" />
-        <activity
-            android:name=".activities.ProfileActivity"
             android:exported="false" />
     </application>
 
