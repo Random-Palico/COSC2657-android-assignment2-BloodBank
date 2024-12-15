@@ -9,6 +9,7 @@ import com.example.bloodbank.R;
 import com.example.bloodbank.activities.DonationSiteActivity;
 import com.example.bloodbank.activities.DonorManagement.DonorListActivity;
 import com.example.bloodbank.activities.admin_super.AdminMainActivity;
+import com.example.bloodbank.activities.profile.ProfileActivity;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class BaseActivity extends AppCompatActivity {
@@ -44,6 +45,13 @@ public class BaseActivity extends AppCompatActivity {
                     finish();
                 }
                 return true;
+            } else if (itemId == R.id.nav_profile) {
+                if (!(this instanceof ProfileActivity)) {
+                    startActivity(new Intent(this, ProfileActivity.class));
+                    overridePendingTransition(0, 0);
+                    finish();
+                }
+                return true;
             }
 
             return false;
@@ -55,6 +63,8 @@ public class BaseActivity extends AppCompatActivity {
             bottomNav.setSelectedItemId(R.id.nav_sites);
         } else if (this instanceof DonorListActivity) {
             bottomNav.setSelectedItemId(R.id.nav_donor_list);
+        } else if (this instanceof ProfileActivity) {
+            bottomNav.setSelectedItemId(R.id.nav_profile);
         }
     }
 }

@@ -17,8 +17,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SearchView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.bloodbank.R;
-import com.example.bloodbank.activities.CampaignDetailActivity;
 import com.example.bloodbank.handler.BaseActivity;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -34,15 +34,19 @@ public class AdminMainActivity extends BaseActivity {
     private FirebaseFirestore db;
     private LinearLayout campaignList;
     private List<DocumentSnapshot> campaigns = new ArrayList<>();
+    private ImageView profileImage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin_main);
 
+        db = FirebaseFirestore.getInstance();
+
         setupBottomNavigation();
 
         TextView welcomeUser = findViewById(R.id.welcomeUser);
+        profileImage = findViewById(R.id.profileImage);
         String userName = getIntent().getStringExtra("USER_NAME");
         String role = getIntent().getStringExtra("USER_ROLE");
 
@@ -53,6 +57,8 @@ public class AdminMainActivity extends BaseActivity {
         }
 
         welcomeUser.setText(userName != null ? "Hi " + userName : "Hi Admin");
+
+        fetchProfileImage();
 
         Button addCampaignButton = findViewById(R.id.addCampaignButton);
         String finalRole = role;
@@ -83,13 +89,13 @@ public class AdminMainActivity extends BaseActivity {
             }
         });
 
-        db = FirebaseFirestore.getInstance();
         fetchCampaigns();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        fetchProfileImage();
         fetchCampaigns();
     }
 
@@ -106,6 +112,46 @@ public class AdminMainActivity extends BaseActivity {
                 Toast.makeText(this, "Campaign updated successfully!", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    private void fetchProfileImage() {
+        String userEmail = getSharedPreferences("LoginPrefs", MODE_PRIVATE).getString("USER_EMAIL", null);
+        if (userEmail == null) {
+            Log.e(TAG, "User email not found in SharedPreferences.");
+            profileImage.setImageResource(R.drawable.ic_placeholder);
+            return;
+        }
+
+        db.collection("Users")
+                .whereEqualTo("email", userEmail)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!querySnapshot.isEmpty()) {
+                        DocumentSnapshot document = querySnapshot.getDocuments().get(0);
+                        String profileImageUrl = document.getString("profileImage");
+
+                        Log.d(TAG, "Profile Image URL: " + profileImageUrl);
+
+                        if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
+                            Glide.with(this)
+                                    .load(profileImageUrl)
+                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                    .skipMemoryCache(true)
+                                    .placeholder(R.drawable.ic_placeholder)
+                                    .error(R.drawable.ic_placeholder)
+                                    .into(profileImage);
+                        } else {
+                            profileImage.setImageResource(R.drawable.ic_placeholder);
+                        }
+                    } else {
+                        Log.e(TAG, "No user found with the given email.");
+                        profileImage.setImageResource(R.drawable.ic_placeholder);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error fetching user profile: " + e.getMessage(), e);
+                    Toast.makeText(this, "Failed to load profile image", Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void fetchCampaigns() {

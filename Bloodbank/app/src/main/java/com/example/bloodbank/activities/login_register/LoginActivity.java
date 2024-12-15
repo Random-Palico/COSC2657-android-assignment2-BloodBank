@@ -78,15 +78,13 @@ public class LoginActivity extends AppCompatActivity {
                                                 return;
                                             }
 
-                                            // Save user details if box is checked
-                                            if (rememberMeCheckBox.isChecked()) {
-                                                editor.putString(KEY_EMAIL, email);
-                                                editor.putString(KEY_PASSWORD, pass);
-                                                editor.putBoolean(KEY_REMEMBER, true);
-                                                editor.apply();
-                                            } else {
-                                                editor.clear().apply();
-                                            }
+                                            // Save user details
+                                            editor.putString(KEY_EMAIL, email);
+                                            editor.putString("USER_EMAIL", email);
+                                            editor.putString("USER_NAME", name);
+                                            editor.putString("USER_ROLE", role);
+                                            editor.putBoolean(KEY_REMEMBER, rememberMeCheckBox.isChecked());
+                                            editor.apply();
 
                                             navigateToRoleActivity(role, name);
                                         } else {
