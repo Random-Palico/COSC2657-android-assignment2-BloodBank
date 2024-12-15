@@ -12,12 +12,21 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.bloodbank.R;
 import com.google.firebase.firestore.DocumentSnapshot;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class SiteAdapter extends RecyclerView.Adapter<SiteAdapter.SiteViewHolder> {
 
-    private final List<DocumentSnapshot> siteList;
-    private final OnSiteSelectedListener listener;
+    private List<DocumentSnapshot> siteList;
+    private OnSiteSelectedListener listener;
+
+    // Default constructor (Test)
+    public SiteAdapter() {
+        this.siteList = new ArrayList<>();
+        this.listener = site -> {
+            // Default listener (test)
+        };
+    }
 
     public SiteAdapter(List<DocumentSnapshot> siteList, OnSiteSelectedListener listener) {
         this.siteList = siteList;
