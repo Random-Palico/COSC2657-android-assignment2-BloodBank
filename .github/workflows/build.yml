@@ -19,11 +19,14 @@ jobs:
       - name: Set Up JDK
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin' 
-          java-version: '17' 
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Export API Key
         run: echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> $GITHUB_ENV
 
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x ./gradlew
+
       - name: Build Android App
-        run: ./gradlew build
+        run: ./gradlew assembleDebug
