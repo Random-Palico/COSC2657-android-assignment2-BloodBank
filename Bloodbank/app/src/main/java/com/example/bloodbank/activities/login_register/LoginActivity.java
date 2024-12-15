@@ -16,7 +16,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.bloodbank.R;
 import com.example.bloodbank.activities.DonorMainActivity;
 import com.example.bloodbank.activities.ManagerMainActivity;
-import com.example.bloodbank.activities.SuperMainActivity;
 import com.example.bloodbank.activities.admin_super.AdminMainActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -127,9 +126,6 @@ public class LoginActivity extends AppCompatActivity {
                 break;
             case "manager":
                 intent = new Intent(this, ManagerMainActivity.class);
-                break;
-            case "super":
-                intent = new Intent(this, SuperMainActivity.class);
                 break;
             case "admin":
                 intent = new Intent(this, AdminMainActivity.class);

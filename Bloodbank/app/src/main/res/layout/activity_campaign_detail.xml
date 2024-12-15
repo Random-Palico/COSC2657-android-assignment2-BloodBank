@@ -4,9 +4,9 @@
     android:padding="16dp">
 
     <LinearLayout
-        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
         <ImageView
             android:id="@+id/campaignImage"
@@ -18,9 +18,9 @@
             android:id="@+id/campaignTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
+            android:paddingTop="8dp"
             android:textSize="18sp"
-            android:paddingTop="8dp" />
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/campaignDate"
@@ -34,12 +34,18 @@
             android:layout_height="wrap_content"
             android:paddingTop="8dp" />
 
-        <!-- MapView to display the location -->
+        <TextView
+            android:id="@+id/campaignAddress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="8dp" />
+
         <com.google.android.gms.maps.MapView
             android:id="@+id/campaignMapView"
             android:layout_width="match_parent"
             android:layout_height="200dp"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="8dp"
+            android:contentDescription="Map showing the location." />
 
         <TextView
             android:id="@+id/requiredBloodTypes"
@@ -54,10 +60,10 @@
             android:paddingTop="8dp" />
 
         <LinearLayout
-            android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
+            android:orientation="horizontal"
             android:paddingTop="16dp">
 
             <Button
@@ -71,9 +77,9 @@
                 android:id="@+id/registerButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
                 android:text="Register"
-                android:visibility="gone"
-                android:layout_marginStart="16dp" />
+                android:visibility="gone" />
 
         </LinearLayout>
 

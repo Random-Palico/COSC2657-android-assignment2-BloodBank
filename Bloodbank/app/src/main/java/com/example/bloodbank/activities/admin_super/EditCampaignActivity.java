@@ -41,7 +41,7 @@ public class EditCampaignActivity extends AppCompatActivity {
     private ImageView selectedImageView;
     private TextView locationPreview;
     private Bitmap selectedImageBitmap;
-    private String selectedDate, selectedShortName;
+    private String selectedDate, selectedShortName, selectedAddress;
     private LatLng selectedLatLng;
     private Uri selectedImageUri;
 
@@ -76,13 +76,14 @@ public class EditCampaignActivity extends AppCompatActivity {
         selectedDate = intent.getStringExtra("campaignDate");
         existingImageUrl = intent.getStringExtra("campaignImage");
         selectedShortName = intent.getStringExtra("campaignLocation");
+        selectedAddress = intent.getStringExtra("campaignAddress");
         double lat = intent.getDoubleExtra("latitude", 0);
         double lng = intent.getDoubleExtra("longitude", 0);
         selectedLatLng = new LatLng(lat, lng);
         requiredBloodTypes = intent.getStringArrayListExtra("requiredBloodTypes");
 
         dateButton.setText(selectedDate);
-        locationPreview.setText("Short Name: " + selectedShortName + "\nLat: " + lat + ", Lng: " + lng);
+        locationPreview.setText("Short Name: " + selectedShortName + "\nAddress: " + selectedAddress + "\nLat: " + lat + ", Lng: " + lng);
         if (existingImageUrl != null) {
             Glide.with(this).load(existingImageUrl).into(selectedImageView);
             selectedImageView.setVisibility(View.VISIBLE);
@@ -115,16 +116,7 @@ public class EditCampaignActivity extends AppCompatActivity {
     }
 
     private void preselectBloodTypes() {
-        CheckBox[] checkBoxes = {
-                findViewById(R.id.bloodAPlus),
-                findViewById(R.id.bloodAMinus),
-                findViewById(R.id.bloodBPlus),
-                findViewById(R.id.bloodBMinus),
-                findViewById(R.id.bloodOPlus),
-                findViewById(R.id.bloodOMinus),
-                findViewById(R.id.bloodABPlus),
-                findViewById(R.id.bloodABMinus)
-        };
+        CheckBox[] checkBoxes = {findViewById(R.id.bloodAPlus), findViewById(R.id.bloodAMinus), findViewById(R.id.bloodBPlus), findViewById(R.id.bloodBMinus), findViewById(R.id.bloodOPlus), findViewById(R.id.bloodOMinus), findViewById(R.id.bloodABPlus), findViewById(R.id.bloodABMinus)};
 
         if (requiredBloodTypes != null) {
             for (CheckBox checkBox : checkBoxes) {
@@ -137,16 +129,7 @@ public class EditCampaignActivity extends AppCompatActivity {
 
     private String[] getSelectedBloodTypes() {
         ArrayList<String> selectedTypes = new ArrayList<>();
-        CheckBox[] checkBoxes = {
-                findViewById(R.id.bloodAPlus),
-                findViewById(R.id.bloodAMinus),
-                findViewById(R.id.bloodBPlus),
-                findViewById(R.id.bloodBMinus),
-                findViewById(R.id.bloodOPlus),
-                findViewById(R.id.bloodOMinus),
-                findViewById(R.id.bloodABPlus),
-                findViewById(R.id.bloodABMinus)
-        };
+        CheckBox[] checkBoxes = {findViewById(R.id.bloodAPlus), findViewById(R.id.bloodAMinus), findViewById(R.id.bloodBPlus), findViewById(R.id.bloodBMinus), findViewById(R.id.bloodOPlus), findViewById(R.id.bloodOMinus), findViewById(R.id.bloodABPlus), findViewById(R.id.bloodABMinus)};
 
         for (CheckBox checkBox : checkBoxes) {
             if (checkBox.isChecked()) {
@@ -161,7 +144,7 @@ public class EditCampaignActivity extends AppCompatActivity {
         String description = descriptionField.getText().toString().trim();
         String[] requiredBloodTypes = getSelectedBloodTypes();
 
-        if (title.isEmpty() || description.isEmpty() || selectedDate == null || selectedShortName == null || requiredBloodTypes.length == 0) {
+        if (title.isEmpty() || description.isEmpty() || selectedDate == null || selectedShortName == null || selectedAddress == null || requiredBloodTypes.length == 0) {
             Toast.makeText(this, "All fields are required!", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -181,11 +164,9 @@ public class EditCampaignActivity extends AppCompatActivity {
         selectedImageBitmap.compress(Bitmap.CompressFormat.JPEG, 80, baos);
         byte[] imageData = baos.toByteArray();
 
-        storageRef.putBytes(imageData)
-                .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                    saveCampaignToFirestore(title, description, uri.toString(), bloodTypes);
-                }))
-                .addOnFailureListener(e -> Toast.makeText(this, "Error uploading image: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        storageRef.putBytes(imageData).addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+            saveCampaignToFirestore(title, description, uri.toString(), bloodTypes);
+        })).addOnFailureListener(e -> Toast.makeText(this, "Error uploading image: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
     private void saveCampaignToFirestore(String title, String description, String imageUrl, String[] bloodTypes) {
@@ -196,16 +177,19 @@ public class EditCampaignActivity extends AppCompatActivity {
         updatedData.put("eventImg", imageUrl);
         updatedData.put("requiredBloodTypes", new ArrayList<>(List.of(bloodTypes)));
         updatedData.put("shortName", selectedShortName);
+        updatedData.put("address", selectedAddress);
         updatedData.put("locationLatLng", new HashMap<String, Double>() {{
             put("lat", selectedLatLng.latitude);
             put("lng", selectedLatLng.longitude);
         }});
 
-        db.collection("DonationSites").document(campaignId)
-                .update(updatedData)
+        db.collection("DonationSites").document(campaignId).update(updatedData)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "Campaign updated successfully!", Toast.LENGTH_SHORT).show();
-                    setResult(RESULT_OK);
+
+                    Intent intent = new Intent(this, AdminMainActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
                     finish();
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error updating campaign: " + e.getMessage(), Toast.LENGTH_SHORT).show());
@@ -218,8 +202,9 @@ public class EditCampaignActivity extends AppCompatActivity {
             double lat = data.getDoubleExtra("latitude", 0);
             double lng = data.getDoubleExtra("longitude", 0);
             selectedShortName = data.getStringExtra("shortName");
+            selectedAddress = data.getStringExtra("address");
             selectedLatLng = new LatLng(lat, lng);
-            locationPreview.setText("Short Name: " + selectedShortName + "\nLat: " + lat + ", Lng: " + lng);
+            locationPreview.setText("Short Name: " + selectedShortName + "\nAddress: " + selectedAddress + "\nLat: " + lat + ", Lng: " + lng);
         } else if (requestCode == 200 && resultCode == RESULT_OK && data != null) {
             try {
                 selectedImageUri = data.getData();

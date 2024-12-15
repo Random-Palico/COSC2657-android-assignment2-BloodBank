@@ -13,6 +13,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SearchView;
 
 import com.bumptech.glide.Glide;
@@ -23,6 +24,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -88,7 +90,7 @@ public class AdminMainActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        fetchCampaigns(); // Ensure data refresh when returning to this activity
+        fetchCampaigns();
     }
 
     @Override
@@ -108,22 +110,19 @@ public class AdminMainActivity extends BaseActivity {
 
     private void fetchCampaigns() {
         Log.d(TAG, "Fetching campaigns...");
-        db.collection("DonationSites")
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (querySnapshot.isEmpty()) {
-                        Toast.makeText(this, "No campaigns available!", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+        db.collection("DonationSites").get().addOnSuccessListener(querySnapshot -> {
+            if (querySnapshot.isEmpty()) {
+                Toast.makeText(this, "No campaigns available!", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-                    campaigns.clear();
-                    campaigns.addAll(querySnapshot.getDocuments());
-                    displayCampaigns(campaigns);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error fetching campaigns", e);
-                    Toast.makeText(this, "Error fetching campaigns: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+            campaigns.clear();
+            campaigns.addAll(querySnapshot.getDocuments());
+            displayCampaigns(campaigns);
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error fetching campaigns", e);
+            Toast.makeText(this, "Error fetching campaigns: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void displayCampaigns(List<DocumentSnapshot> campaignDocuments) {
@@ -134,12 +133,14 @@ public class AdminMainActivity extends BaseActivity {
             String eventDateStr = document.getString("eventDate");
             String eventImg = document.getString("eventImg");
 
+            String address = document.getString("address");
+
             if (title == null || eventDateStr == null || location == null || eventImg == null) {
                 Log.e(TAG, "Missing data in Firestore document: " + document.getId());
                 continue;
             }
 
-            addCampaignCard(campaignList, document, title, eventDateStr, location, eventImg);
+            addCampaignCard(campaignList, document, title, eventDateStr, location, eventImg, address);
         }
     }
 
@@ -160,7 +161,7 @@ public class AdminMainActivity extends BaseActivity {
         displayCampaigns(filteredCampaigns);
     }
 
-    private void addCampaignCard(LinearLayout campaignList, DocumentSnapshot document, String title, String date, String location, String eventImg) {
+    private void addCampaignCard(LinearLayout campaignList, DocumentSnapshot document, String title, String date, String location, String eventImg, String address) {
         LayoutInflater inflater = LayoutInflater.from(this);
         View cardView = inflater.inflate(R.layout.campaign_card, campaignList, false);
 
@@ -169,6 +170,7 @@ public class AdminMainActivity extends BaseActivity {
         TextView campaignLocation = cardView.findViewById(R.id.campaignLocation);
         ImageView campaignImage = cardView.findViewById(R.id.campaignImage);
         Button editButton = cardView.findViewById(R.id.editButton);
+        Button assignButton = cardView.findViewById(R.id.assignButton);
 
         campaignTitle.setText(title);
         campaignDate.setText(date);
@@ -190,6 +192,7 @@ public class AdminMainActivity extends BaseActivity {
             intent.putExtra("campaignDate", document.getString("eventDate"));
             intent.putExtra("campaignImage", eventImg);
             intent.putExtra("campaignLocation", location);
+            intent.putExtra("campaignAddress", address);
 
             Map<String, Object> locationLatLng = (Map<String, Object>) document.get("locationLatLng");
             if (locationLatLng != null) {
@@ -205,33 +208,63 @@ public class AdminMainActivity extends BaseActivity {
             startActivityForResult(intent, 200);
         });
 
-        cardView.setOnClickListener(v -> {
-            Intent detailIntent = new Intent(this, CampaignDetailActivity.class);
-            detailIntent.putExtra("campaignId", document.getId());
-            detailIntent.putExtra("campaignTitle", title);
-            detailIntent.putExtra("campaignDescription", document.getString("description"));
-            detailIntent.putExtra("campaignDate", document.getString("eventDate"));
-            detailIntent.putExtra("campaignImage", eventImg);
-            detailIntent.putExtra("campaignLocation", location);
-
-            Map<String, Object> locationLatLng = (Map<String, Object>) document.get("locationLatLng");
-            if (locationLatLng != null) {
-                double lat = (double) locationLatLng.get("lat");
-                double lng = (double) locationLatLng.get("lng");
-                detailIntent.putExtra("latitude", lat);
-                detailIntent.putExtra("longitude", lng);
-            }
-
-            ArrayList<String> bloodTypes = (ArrayList<String>) document.get("requiredBloodTypes");
-            detailIntent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
-
-            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-            String role = sharedPreferences.getString("USER_ROLE", "user");
-            detailIntent.putExtra("USER_ROLE", role);
-
-            startActivityForResult(detailIntent, 300);
-        });
+        assignButton.setVisibility(View.VISIBLE);
+        assignButton.setText("Assign");
+        assignButton.setOnClickListener(v -> showAssignPopup(document.getId(), title));
 
         campaignList.addView(cardView);
+    }
+
+    private void showAssignPopup(String campaignId, String campaignTitle) {
+        FirebaseFirestore.getInstance()
+                .collection("Users")
+                .whereEqualTo("role", "manager")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.isEmpty()) {
+                        Toast.makeText(this, "No managers available", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    List<DocumentSnapshot> managers = querySnapshot.getDocuments();
+                    String[] managerNames = new String[managers.size()];
+                    String[] managerEmails = new String[managers.size()];
+
+                    for (int i = 0; i < managers.size(); i++) {
+                        managerNames[i] = managers.get(i).getString("name");
+                        managerEmails[i] = managers.get(i).getString("email");
+                    }
+
+                    showManagerSelectionDialog(campaignId, campaignTitle, managerNames, managerEmails);
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Error fetching managers", Toast.LENGTH_SHORT).show());
+    }
+
+    private void showManagerSelectionDialog(String campaignId, String campaignTitle, String[] managerNames, String[] managerEmails) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Assign Manager to " + campaignTitle);
+
+        builder.setItems(managerNames, (dialog, which) -> {
+            String selectedManagerName = managerNames[which];
+            String selectedManagerEmail = managerEmails[which];
+
+            assignManagerToCampaign(campaignId, selectedManagerName, selectedManagerEmail);
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+    private void assignManagerToCampaign(String campaignId, String managerName, String managerEmail) {
+        Map<String, Object> updateData = new HashMap<>();
+        updateData.put("managerName", managerName);
+        updateData.put("managerEmail", managerEmail);
+
+        FirebaseFirestore.getInstance()
+                .collection("DonationSites")
+                .document(campaignId)
+                .update(updateData)
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Manager assigned successfully", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e -> Toast.makeText(this, "Error assigning manager", Toast.LENGTH_SHORT).show());
     }
 }
