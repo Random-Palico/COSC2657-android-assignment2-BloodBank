@@ -26,7 +26,7 @@ jobs:
         run: echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> $GITHUB_ENV
 
       - name: Make Gradle Wrapper Executable
-        run: chmod +x ./gradlew
+        run: chmod +x Bloodbank/gradlew
 
       - name: Build Android App
-        run: ./gradlew assembleDebug
+        run: Bloodbank/gradlew build
