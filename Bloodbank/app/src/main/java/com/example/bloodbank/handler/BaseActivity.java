@@ -38,6 +38,8 @@ public class BaseActivity extends AppCompatActivity {
         }
 
         Menu menu = bottomNav.getMenu();
+
+        // Hide menu items based on the user role
         if ("donor".equals(userRole)) {
             menu.findItem(R.id.nav_donor_list).setVisible(false);
         }
@@ -69,6 +71,16 @@ public class BaseActivity extends AppCompatActivity {
             }
             return false;
         });
+
+        if (this instanceof AdminMainActivity || this instanceof DonorMainActivity) {
+            bottomNav.setSelectedItemId(R.id.nav_home);
+        } else if (this instanceof DonationSiteActivity) {
+            bottomNav.setSelectedItemId(R.id.nav_sites);
+        } else if (this instanceof DonorListActivity) {
+            bottomNav.setSelectedItemId(R.id.nav_donor_list);
+        } else if (this instanceof ProfileActivity) {
+            bottomNav.setSelectedItemId(R.id.nav_profile);
+        }
     }
 
     private void navigateToActivity(Class<?> activityClass) {
