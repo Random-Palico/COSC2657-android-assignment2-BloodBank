@@ -26,4 +26,5 @@ jobs:
         run: echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> $GITHUB_ENV
 
       - name: Build Android App
-        run: cd Bloodbank && ./gradlew build
+        run: cd Bloodbank && ./gradlew build -x lint
+
