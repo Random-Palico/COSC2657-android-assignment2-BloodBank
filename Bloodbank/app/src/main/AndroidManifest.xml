@@ -21,9 +21,6 @@
         tools:targetApi="31">
 
         <activity
-            android:name=".handler.SiteAdapter"
-            android:exported="false" />
-        <activity
             android:name=".activities.DonationSiteActivity"
             android:exported="false" />
         <activity
@@ -32,7 +29,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyC7uUil22WO6t-Yswk1_oI2c54dpVzQyB0" />
+            android:value="${google_maps_key}" />
 
         <activity
             android:name=".activities.admin_super.EditCampaignActivity"
