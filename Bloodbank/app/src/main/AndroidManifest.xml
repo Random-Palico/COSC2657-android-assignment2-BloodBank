@@ -29,7 +29,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="${google_maps_key}" />
+            android:value="AIzaSyC7uUil22WO6t-Yswk1_oI2c54dpVzQyB0" />
 
         <activity
             android:name=".activities.admin_super.EditCampaignActivity"

@@ -1,5 +1,4 @@
 import com.android.build.api.dsl.Lint
-import com.android.build.api.dsl.LintOptions
 
 plugins {
     alias(libs.plugins.android.application)
@@ -21,11 +20,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-    }
-
-    fun Lint.() {
-        abortOnError = false
-        checkReleaseBuilds = false
     }
 
     buildTypes {
