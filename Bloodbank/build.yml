@@ -1,0 +1,45 @@
+name: Build Android App
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up JDK
+      - name: Set Up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Step 3: Export API Key as Environment Variable
+      - name: Export API Key
+        run: echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> $GITHUB_ENV
+
+      # Step 4: Ensure Gradle Wrapper is executable
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x ./gradlew
+
+      # Step 5: Build the app with Gradle
+      - name: Build Android App
+        run: ./gradlew build --stacktrace --warning-mode all
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+
+      # Step 6: Ignore lint issues 
+      - name: Ignore Lint Issues
+        run: ./gradlew lintDebug || echo "Lint warnings ignored"
+
+     
