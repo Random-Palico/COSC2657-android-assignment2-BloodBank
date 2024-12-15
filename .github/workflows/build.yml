@@ -25,8 +25,14 @@ jobs:
       - name: Export API Key
         run: echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> $GITHUB_ENV
 
+      - name: Navigate to Subdirectory
+        working-directory: Bloodbank
+        run: pwd
+
       - name: Make Gradle Wrapper Executable
-        run: chmod +x Bloodbank/gradlew
+        working-directory: Bloodbank
+        run: chmod +x ./gradlew
 
       - name: Build Android App
-        run: Bloodbank/gradlew build
+        working-directory: Bloodbank
+        run: ./gradlew build
