@@ -98,7 +98,7 @@ public class DonorDetailActivity extends BaseActivity {
             donorBloodType.setText(donor.getString("bloodType"));
 
             Long bloodUnit = donor.getLong("bloodUnit");
-            donorBloodUnit.setText("Blood Units: " + (bloodUnit != null ? bloodUnit.toString() : "N/A"));
+            donorBloodUnit.setText("Blood Units (mL): " + (bloodUnit != null ? bloodUnit.toString() : "N/A"));
 
             String profileImageUrl = donor.getString("profileImage");
             if (profileImageUrl != null && !profileImageUrl.isEmpty()) {

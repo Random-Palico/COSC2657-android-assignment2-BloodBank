@@ -97,8 +97,12 @@ public class DonorRegisterActivity extends AppCompatActivity {
         dobPickerButton.setOnClickListener(v -> {
             Calendar calendar = Calendar.getInstance();
             new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
-                calendar.set(year, month, dayOfMonth);
-                dobField.setText(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(calendar.getTime()));
+                String selectedDob = String.format(Locale.getDefault(), "%02d/%02d/%d", dayOfMonth, month + 1, year);
+                if (!isValidAge(selectedDob)) {
+                    Toast.makeText(this, "Age must be 18 or higher!", Toast.LENGTH_SHORT).show();
+                } else {
+                    dobField.setText(selectedDob);
+                }
             }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
         });
     }
@@ -127,7 +131,7 @@ public class DonorRegisterActivity extends AppCompatActivity {
                     dobPickerButton.setEnabled(false);
                 }
 
-                // disable drop dơn if data exists
+                // disable drop down if data exists
                 if (location != null && !location.isEmpty()) {
                     ArrayAdapter<String> locationAdapter = (ArrayAdapter<String>) locationSpinner.getAdapter();
                     int locationIndex = locationAdapter.getPosition(location);
@@ -147,6 +151,33 @@ public class DonorRegisterActivity extends AppCompatActivity {
                 }
             }
         }).addOnFailureListener(e -> Toast.makeText(this, "Failed to load profile data", Toast.LENGTH_SHORT).show());
+    }
+
+    private boolean isValidAge(String dob) {
+        if (dob == null || dob.isEmpty()) {
+            return false;
+        }
+
+        try {
+            String[] parts = dob.split("/");
+            int day = Integer.parseInt(parts[0]);
+            int month = Integer.parseInt(parts[1]) - 1;
+            int year = Integer.parseInt(parts[2]);
+
+            Calendar birthDate = Calendar.getInstance();
+            birthDate.set(year, month, day);
+
+            Calendar today = Calendar.getInstance();
+            int age = today.get(Calendar.YEAR) - birthDate.get(Calendar.YEAR);
+
+            if (today.get(Calendar.DAY_OF_YEAR) < birthDate.get(Calendar.DAY_OF_YEAR)) {
+                age--;
+            }
+
+            return age >= 18;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void validateAndRegisterDonor() {
