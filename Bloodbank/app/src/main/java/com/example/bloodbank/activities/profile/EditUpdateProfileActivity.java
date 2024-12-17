@@ -147,7 +147,7 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
     private void validateAndSaveProfile() {
         String dob = dobField.getText().toString();
         if (!isValidAge(dob)) {
-            Toast.makeText(this, "Age must be 18 or higher!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Field should not be blank!", Toast.LENGTH_SHORT).show();
             return;
         }
         saveProfileUpdates();
