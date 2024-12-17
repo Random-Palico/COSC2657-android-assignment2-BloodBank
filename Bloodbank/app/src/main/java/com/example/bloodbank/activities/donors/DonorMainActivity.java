@@ -1,4 +1,4 @@
-package com.example.bloodbank.activities;
+package com.example.bloodbank.activities.donors;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -18,6 +18,7 @@ import androidx.appcompat.widget.SearchView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.bloodbank.R;
+import com.example.bloodbank.activities.CampaignDetailActivity;
 import com.example.bloodbank.handler.BaseActivity;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -65,7 +66,7 @@ public class DonorMainActivity extends BaseActivity {
 
 
     private void initializeViews() {
-        // Get user name and role from intent
+        // Get intent
         TextView welcomeUser = findViewById(R.id.welcomeUser);
         profileImage = findViewById(R.id.profileImage);
         campaignList = findViewById(R.id.campaignList);
@@ -137,7 +138,6 @@ public class DonorMainActivity extends BaseActivity {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error fetching user profile: " + e.getMessage(), e);
-                    Toast.makeText(this, "Failed to load profile image", Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -224,9 +224,27 @@ public class DonorMainActivity extends BaseActivity {
 
         // Register button visible for donors
         registerButton.setVisibility(View.VISIBLE);
-        registerButton.setOnClickListener(v -> Toast.makeText(this, "Registered for " + title, Toast.LENGTH_SHORT).show());
+        registerButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, DonorRegisterActivity.class);
+            intent.putExtra("campaignId", document.getId());
+            intent.putExtra("campaignTitle", title);
+            intent.putExtra("campaignDate", date);
+            intent.putExtra("campaignLocation", location);
+            intent.putExtra("campaignAddress", address);
+            intent.putExtra("campaignImage", eventImg);
 
-        // Hide the edit and assign buttons - Admin functions
+            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+            String userName = sharedPreferences.getString("USER_NAME", "");
+            String userBloodType = sharedPreferences.getString("USER_BLOOD_TYPE", "");
+            String userLocation = sharedPreferences.getString("USER_LOCATION", "");
+
+            intent.putExtra("userName", userName);
+            intent.putExtra("userBloodType", userBloodType);
+            intent.putExtra("userLocation", userLocation);
+
+            startActivity(intent);
+        });
+
         editButton.setVisibility(View.GONE);
         assignButton.setVisibility(View.GONE);
 
@@ -253,7 +271,6 @@ public class DonorMainActivity extends BaseActivity {
             ArrayList<String> bloodTypes = (ArrayList<String>) document.get("requiredBloodTypes");
             intent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
 
-            // Retrieve role from SharedPreferences
             SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
             String role = sharedPreferences.getString("USER_ROLE", "donor");
             intent.putExtra("USER_ROLE", role);
@@ -261,7 +278,6 @@ public class DonorMainActivity extends BaseActivity {
             startActivity(intent);
         });
     }
-
 }
 
 

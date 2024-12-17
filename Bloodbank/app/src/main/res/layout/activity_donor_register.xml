@@ -8,45 +8,33 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/profileImage"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:layout_gravity="center"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/circle_shape"
-            android:clipToOutline="true"
-            android:contentDescription="@string/profile_picture_desc"
-            android:scaleType="centerCrop" />
-
-        <Button
-            android:id="@+id/chooseImageButton"
-            android:layout_width="match_parent"
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:layout_marginBottom="16dp"
-            android:backgroundTint="@color/red"
-            android:text="Choose Profile Image"
-            android:textColor="@android:color/white" />
+            android:text="Register as Donor"
+            android:textSize="20sp"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
             android:text="Name"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
 
         <EditText
             android:id="@+id/editNameField"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:hint="Enter Name"
+            android:hint="Name"
             android:inputType="text" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
+            android:layout_marginTop="16dp"
             android:text="Date of Birth"
             android:textSize="16sp" />
 
@@ -60,8 +48,9 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:hint="DD/MM/YYYY"
                 android:focusable="false"
-                android:hint="DD/MM/YYYY" />
+                android:inputType="none" />
 
             <Button
                 android:id="@+id/dobPickerButton"
@@ -73,36 +62,56 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
+            android:layout_marginTop="16dp"
             android:text="Location"
             android:textSize="16sp" />
 
         <Spinner
             android:id="@+id/editLocationSpinner"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp" />
+            android:layout_height="wrap_content" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
+            android:layout_marginTop="16dp"
             android:text="Blood Type"
             android:textSize="16sp" />
 
         <Spinner
             android:id="@+id/bloodTypeSpinner"
             android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginTop="16dp"
+            android:text="Blood Units (mL)"
+            android:textSize="16sp" />
+
+        <SeekBar
+            android:id="@+id/bloodUnitSlider"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="5" />
+
+        <TextView
+            android:id="@+id/bloodUnitValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="8dp"
+            android:text="0"
+            android:textSize="16sp" />
 
         <Button
-            android:id="@+id/saveButton"
+            android:id="@+id/confirmButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:text="Register"
             android:backgroundTint="@color/red"
-            android:text="Save"
             android:textColor="@android:color/white" />
     </LinearLayout>
 </ScrollView>

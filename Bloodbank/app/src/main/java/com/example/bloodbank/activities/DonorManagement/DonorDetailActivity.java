@@ -3,18 +3,21 @@ package com.example.bloodbank.activities.DonorManagement;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.widget.SearchView;
 
+import com.bumptech.glide.Glide;
 import com.example.bloodbank.R;
 import com.example.bloodbank.handler.BaseActivity;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class DonorDetailActivity extends BaseActivity {
@@ -34,6 +37,7 @@ public class DonorDetailActivity extends BaseActivity {
 
         siteId = getIntent().getStringExtra("SITE_ID");
         String siteName = getIntent().getStringExtra("SITE_NAME");
+
 
         TextView pageTitle = findViewById(R.id.pageTitle);
         pageTitle.setText(siteName);
@@ -60,7 +64,7 @@ public class DonorDetailActivity extends BaseActivity {
 
     private void fetchDonors() {
         db.collection("Donors")
-                .whereEqualTo("siteId", siteId)
+                .whereEqualTo("campaignId", siteId)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     donors.clear();
@@ -76,26 +80,61 @@ public class DonorDetailActivity extends BaseActivity {
     private void displayDonors(List<DocumentSnapshot> donors) {
         donorListLayout.removeAllViews();
         for (DocumentSnapshot donor : donors) {
-            String name = donor.getString("name");
-            String age = donor.getString("age");
-            String location = donor.getString("location");
-            String bloodType = donor.getString("bloodType");
-
-            if (name == null || age == null || location == null || bloodType == null) continue;
-
             View donorCard = getLayoutInflater().inflate(R.layout.donor_card, donorListLayout, false);
 
+            ImageView donorProfileImage = donorCard.findViewById(R.id.donorImage);
             TextView donorName = donorCard.findViewById(R.id.donorName);
             TextView donorAge = donorCard.findViewById(R.id.donorAge);
             TextView donorLocation = donorCard.findViewById(R.id.donorLocation);
             TextView donorBloodType = donorCard.findViewById(R.id.donorBloodType);
+            TextView donorBloodUnit = donorCard.findViewById(R.id.donorBloodUnit);
 
-            donorName.setText(name);
-            donorAge.setText(age + " years old");
-            donorLocation.setText(location);
-            donorBloodType.setText(bloodType);
+            donorName.setText(donor.getString("name"));
+
+            String dob = donor.getString("dob");
+            donorAge.setText("Age: " + (dob != null ? calculateAge(dob) : "N/A"));
+
+            donorLocation.setText(donor.getString("location"));
+            donorBloodType.setText(donor.getString("bloodType"));
+
+            Long bloodUnit = donor.getLong("bloodUnit");
+            donorBloodUnit.setText("Blood Units: " + (bloodUnit != null ? bloodUnit.toString() : "N/A"));
+
+            String profileImageUrl = donor.getString("profileImage");
+            if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
+                Glide.with(this).load(profileImageUrl).placeholder(R.drawable.ic_placeholder).into(donorProfileImage);
+            } else {
+                donorProfileImage.setImageResource(R.drawable.ic_placeholder);
+            }
 
             donorListLayout.addView(donorCard);
+        }
+    }
+
+
+    private String calculateAge(String dob) {
+        if (dob == null || dob.isEmpty()) return "N/A";
+
+        try {
+            String[] parts = dob.split("/");
+            int year = Integer.parseInt(parts[2]);
+            int month = Integer.parseInt(parts[1]);
+            int day = Integer.parseInt(parts[0]);
+
+            Calendar birthDate = Calendar.getInstance();
+            birthDate.set(year, month - 1, day);
+
+            Calendar today = Calendar.getInstance();
+            int age = today.get(Calendar.YEAR) - birthDate.get(Calendar.YEAR);
+
+            if (today.get(Calendar.DAY_OF_YEAR) < birthDate.get(Calendar.DAY_OF_YEAR)) {
+                age--;
+            }
+
+            return String.valueOf(age);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "N/A";
         }
     }
 

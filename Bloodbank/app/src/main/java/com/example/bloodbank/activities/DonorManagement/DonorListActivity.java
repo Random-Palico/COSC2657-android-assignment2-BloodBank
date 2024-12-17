@@ -36,7 +36,6 @@ public class DonorListActivity extends BaseActivity {
         db = FirebaseFirestore.getInstance();
         donationSites = new ArrayList<>();
 
-        // Search functionality
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -98,6 +97,7 @@ public class DonorListActivity extends BaseActivity {
         intent.putExtra("SITE_NAME", siteName);
         startActivity(intent);
     }
+
 
     private void filterSites(String query) {
         if (query.isEmpty()) {

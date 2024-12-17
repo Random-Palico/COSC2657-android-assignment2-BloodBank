@@ -56,7 +56,6 @@ public class AdminMainActivity extends BaseActivity {
             role = sharedPreferences.getString("USER_ROLE", "user");
         }
 
-        // Update the UI dynamically based on the retrieved name and role
         TextView welcomeUser = findViewById(R.id.welcomeUser);
         welcomeUser.setText("Hi " + userName);
 
@@ -157,7 +156,6 @@ public class AdminMainActivity extends BaseActivity {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error fetching user profile: " + e.getMessage(), e);
-                    Toast.makeText(this, "Failed to load profile image", Toast.LENGTH_SHORT).show();
                 });
     }
 

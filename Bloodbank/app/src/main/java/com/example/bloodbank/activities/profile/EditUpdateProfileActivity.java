@@ -25,6 +25,7 @@ import com.google.firebase.storage.StorageReference;
 
 import java.io.ByteArrayOutputStream;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,6 +44,8 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
     private ImageView profileImageView;
     private Bitmap selectedImageBitmap;
     private Uri selectedImageUri;
+    private Spinner locationSpinner;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +58,7 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
 
         initializeViews();
         setupBloodTypeSpinner();
+        setupLocationSpinner();
         loadUserData();
 
         saveButton.setOnClickListener(v -> validateAndSaveProfile());
@@ -65,7 +69,7 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
     private void initializeViews() {
         nameField = findViewById(R.id.editNameField);
         dobField = findViewById(R.id.editDobField);
-        locationField = findViewById(R.id.editLocationField);
+        locationSpinner = findViewById(R.id.editLocationSpinner);
         bloodTypeSpinner = findViewById(R.id.bloodTypeSpinner);
         saveButton = findViewById(R.id.saveButton);
         chooseImageButton = findViewById(R.id.chooseImageButton);
@@ -83,6 +87,18 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
         bloodTypeSpinner.setAdapter(adapter);
     }
 
+    private void setupLocationSpinner() {
+        String[] countries = Locale.getISOCountries();
+        String[] countryNames = Arrays.stream(countries)
+                .map(code -> new Locale("", code).getDisplayCountry())
+                .toArray(String[]::new);
+
+        ArrayAdapter<String> locationAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, countryNames);
+        locationAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        locationSpinner.setAdapter(locationAdapter);
+    }
+
+
     private void loadUserData() {
         String userId = auth.getCurrentUser().getUid();
 
@@ -97,7 +113,13 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
 
                 nameField.setText((String) data.getOrDefault("name", ""));
                 dobField.setText((String) data.getOrDefault("dob", ""));
-                locationField.setText((String) data.getOrDefault("location", ""));
+                String location = (String) data.get("location");
+                if (location != null) {
+                    ArrayAdapter<String> adapter = (ArrayAdapter<String>) locationSpinner.getAdapter();
+                    int position = adapter.getPosition(location);
+                    if (position >= 0) locationSpinner.setSelection(position);
+                }
+
 
                 String bloodType = (String) data.get("bloodType");
                 if (bloodType != null) {
@@ -145,11 +167,12 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
     private void saveProfileUpdates() {
         String userId = auth.getCurrentUser().getUid();
         String selectedBloodType = bloodTypeSpinner.getSelectedItem().toString();
+        String selectedLocation = locationSpinner.getSelectedItem().toString();
 
         Map<String, Object> updates = new HashMap<>();
         updates.put("name", nameField.getText().toString().trim());
         updates.put("dob", dobField.getText().toString().trim());
-        updates.put("location", locationField.getText().toString().trim());
+        updates.put("location", selectedLocation);
         updates.put("bloodType", selectedBloodType);
 
         db.collection("Users").document(userId).update(updates).addOnSuccessListener(aVoid -> {
@@ -163,6 +186,7 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
             }
         }).addOnFailureListener(e -> Toast.makeText(this, "Error updating profile: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
+
 
     private void updateSharedPreferences(Map<String, Object> updates) {
         SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
@@ -226,5 +250,4 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
             }
         }
     }
-
 }

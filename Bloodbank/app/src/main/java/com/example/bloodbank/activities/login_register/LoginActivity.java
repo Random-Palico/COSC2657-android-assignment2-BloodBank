@@ -14,7 +14,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.bloodbank.R;
-import com.example.bloodbank.activities.DonorMainActivity;
+import com.example.bloodbank.activities.donors.DonorMainActivity;
 import com.example.bloodbank.activities.ManagerMainActivity;
 import com.example.bloodbank.activities.admin_super.AdminMainActivity;
 import com.google.firebase.auth.FirebaseAuth;

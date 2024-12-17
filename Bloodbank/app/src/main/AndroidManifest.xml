@@ -18,7 +18,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BloodBank"
         tools:targetApi="31">
-
+        <activity
+            android:name=".activities.donors.DonorRegisterActivity"
+            android:exported="false" />
         <activity
             android:name=".activities.profile.ProfileActivity"
             android:exported="false" />
@@ -52,7 +54,7 @@
             android:name=".activities.ManagerMainActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.DonorMainActivity"
+            android:name=".activities.donors.DonorMainActivity"
             android:exported="false" />
         <activity
             android:name=".activities.login_register.RegisterActivity"
