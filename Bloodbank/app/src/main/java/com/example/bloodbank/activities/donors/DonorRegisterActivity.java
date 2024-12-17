@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.bloodbank.R;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.SimpleDateFormat;
@@ -205,10 +206,43 @@ public class DonorRegisterActivity extends AppCompatActivity {
         donorData.put("profileImage", profileImageUrl != null ? profileImageUrl : "placeholder_url");
 
         db.collection("Donors").document(userId).set(donorData).addOnSuccessListener(aVoid -> {
+            createNotification(campaignId, userId);
             Toast.makeText(this, "Registered successfully!", Toast.LENGTH_SHORT).show();
             finish();
         }).addOnFailureListener(e -> {
             Toast.makeText(this, "Registration failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         });
+    }
+
+    // Notification for admin and manager
+    private void createNotification(String campaignId, String userId) {
+        String userName = nameField.getText().toString().trim();
+
+        db.collection("DonationSites").document(campaignId).get()
+                .addOnSuccessListener(snapshot -> {
+                    if (snapshot.exists()) {
+                        String siteName = snapshot.getString("siteName");
+                        String shortName = snapshot.getString("shortName");
+
+                        String message = userName + " registered at campaign " + siteName + " at " + shortName;
+
+                        // Create notification
+                        Map<String, Object> notification = new HashMap<>();
+                        notification.put("receiverId", "adminManager");
+                        notification.put("type", "register");
+                        notification.put("message", message);
+                        notification.put("timestamp", System.currentTimeMillis());
+                        notification.put("status", "unread");
+                        notification.put("userId", userId);
+                        notification.put("campaignId", campaignId);
+
+                        // Add the notification to Firestore
+                        db.collection("Notifications").add(notification)
+                                .addOnFailureListener(e -> Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                    } else {
+                        Toast.makeText(this, "Campaign details not found!", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to fetch campaign details: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 }

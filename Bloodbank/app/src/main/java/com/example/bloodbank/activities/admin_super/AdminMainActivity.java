@@ -20,6 +20,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.bloodbank.R;
 import com.example.bloodbank.activities.CampaignDetailActivity;
+import com.example.bloodbank.activities.NotificationActivity;
 import com.example.bloodbank.handler.BaseActivity;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -36,6 +37,8 @@ public class AdminMainActivity extends BaseActivity {
     private LinearLayout campaignList;
     private List<DocumentSnapshot> campaigns = new ArrayList<>();
     private ImageView profileImage;
+    private String currentUserId;
+    private String currentUserRole;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,34 +46,45 @@ public class AdminMainActivity extends BaseActivity {
         setContentView(R.layout.activity_admin_main);
 
         db = FirebaseFirestore.getInstance();
-
         setupBottomNavigation();
 
         profileImage = findViewById(R.id.profileImage);
-        String userName = getIntent().getStringExtra("USER_NAME");
-        String role = getIntent().getStringExtra("USER_ROLE");
 
-        if (userName == null || role == null) {
-            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-            userName = sharedPreferences.getString("USER_NAME", "User");
-            role = sharedPreferences.getString("USER_ROLE", "user");
+        // Retrieve user details from SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+        currentUserId = sharedPreferences.getString("USER_ID", null);
+        currentUserRole = sharedPreferences.getString("USER_ROLE", "user");
+
+        if (currentUserId == null) {
+            Toast.makeText(this, "Unable to fetch user details. Please log in again.", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
         }
 
-        TextView welcomeUser = findViewById(R.id.welcomeUser);
-        welcomeUser.setText("Hi " + userName);
+        ImageView notificationButton = findViewById(R.id.notificationButton);
+        checkForUnreadNotifications(notificationButton);
 
+        notificationButton.setOnClickListener(v -> {
+            Intent intent = new Intent(AdminMainActivity.this, NotificationActivity.class);
+            intent.putExtra("USER_ID", "adminManager");
+            startActivity(intent);
+        });
+
+
+        TextView welcomeUser = findViewById(R.id.welcomeUser);
+        String userName = sharedPreferences.getString("USER_NAME", "Admin");
+        welcomeUser.setText("Hi " + userName);
 
         fetchProfileImage();
 
         Button addCampaignButton = findViewById(R.id.addCampaignButton);
-        String finalRole = role;
         addCampaignButton.setOnClickListener(v -> {
-            if (!"admin".equals(finalRole)) {
+            if (!"admin".equals(currentUserRole)) {
                 Toast.makeText(this, "You don't have permission to add campaigns!", Toast.LENGTH_SHORT).show();
                 return;
             }
             Intent intent = new Intent(this, AddCampaignActivity.class);
-            intent.putExtra("USER_ROLE", finalRole);
+            intent.putExtra("USER_ROLE", currentUserRole);
             startActivityForResult(intent, 100);
         });
 
@@ -117,6 +131,26 @@ public class AdminMainActivity extends BaseActivity {
                 Toast.makeText(this, "Campaign updated successfully!", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    private void checkForUnreadNotifications(ImageView notificationButton) {
+        db.collection("Notifications")
+                .whereEqualTo("receiverId", "adminManager")
+                .whereEqualTo("status", "unread")
+                .addSnapshotListener((querySnapshot, e) -> {
+                    if (e != null) {
+                        Log.e(TAG, "Failed to listen for notifications: " + e.getMessage());
+                        return;
+                    }
+
+                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
+                        // Highlight the notification icon if there are unread notifications
+                        notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
+                    } else {
+                        // Reset the notification icon if there are no unread notifications
+                        notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
+                    }
+                });
     }
 
 
