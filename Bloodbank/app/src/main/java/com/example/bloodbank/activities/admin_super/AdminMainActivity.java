@@ -7,9 +7,11 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -66,10 +68,9 @@ public class AdminMainActivity extends BaseActivity {
 
         notificationButton.setOnClickListener(v -> {
             Intent intent = new Intent(AdminMainActivity.this, NotificationActivity.class);
-            intent.putExtra("USER_ID", "adminManager");
+            intent.putExtra("RECEIVER_IDS", new String[]{"adminManager", "all"});
             startActivity(intent);
         });
-
 
         TextView welcomeUser = findViewById(R.id.welcomeUser);
         String userName = sharedPreferences.getString("USER_NAME", "Admin");
@@ -134,25 +135,21 @@ public class AdminMainActivity extends BaseActivity {
     }
 
     private void checkForUnreadNotifications(ImageView notificationButton) {
-        db.collection("Notifications")
-                .whereEqualTo("receiverId", "adminManager")
-                .whereEqualTo("status", "unread")
-                .addSnapshotListener((querySnapshot, e) -> {
-                    if (e != null) {
-                        Log.e(TAG, "Failed to listen for notifications: " + e.getMessage());
-                        return;
-                    }
+        db.collection("Notifications").whereIn("receiverId", List.of("adminManager", "all")).whereEqualTo("status", "unread").addSnapshotListener((querySnapshot, e) -> {
+            if (e != null) {
+                Log.e(TAG, "Failed to listen for notifications: " + e.getMessage());
+                return;
+            }
 
-                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
-                        // Highlight the notification icon if there are unread notifications
-                        notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
-                    } else {
-                        // Reset the notification icon if there are no unread notifications
-                        notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
-                    }
-                });
+            if (querySnapshot != null && !querySnapshot.isEmpty()) {
+                // Highlight the notification icon if there are unread notifications
+                notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
+            } else {
+                // Reset the notification icon if there are no unread notifications
+                notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
+            }
+        });
     }
-
 
     private void fetchProfileImage() {
         String userEmail = getSharedPreferences("LoginPrefs", MODE_PRIVATE).getString("USER_EMAIL", null);
@@ -162,35 +159,25 @@ public class AdminMainActivity extends BaseActivity {
             return;
         }
 
-        db.collection("Users")
-                .whereEqualTo("email", userEmail)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (!querySnapshot.isEmpty()) {
-                        DocumentSnapshot document = querySnapshot.getDocuments().get(0);
-                        String profileImageUrl = document.getString("profileImage");
+        db.collection("Users").whereEqualTo("email", userEmail).get().addOnSuccessListener(querySnapshot -> {
+            if (!querySnapshot.isEmpty()) {
+                DocumentSnapshot document = querySnapshot.getDocuments().get(0);
+                String profileImageUrl = document.getString("profileImage");
 
-                        Log.d(TAG, "Profile Image URL: " + profileImageUrl);
+                Log.d(TAG, "Profile Image URL: " + profileImageUrl);
 
-                        if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
-                            Glide.with(this)
-                                    .load(profileImageUrl)
-                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                    .skipMemoryCache(true)
-                                    .placeholder(R.drawable.ic_placeholder)
-                                    .error(R.drawable.ic_placeholder)
-                                    .into(profileImage);
-                        } else {
-                            profileImage.setImageResource(R.drawable.ic_placeholder);
-                        }
-                    } else {
-                        Log.e(TAG, "No user found with the given email.");
-                        profileImage.setImageResource(R.drawable.ic_placeholder);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error fetching user profile: " + e.getMessage(), e);
-                });
+                if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
+                    Glide.with(this).load(profileImageUrl).diskCacheStrategy(DiskCacheStrategy.NONE).skipMemoryCache(true).placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_placeholder).into(profileImage);
+                } else {
+                    profileImage.setImageResource(R.drawable.ic_placeholder);
+                }
+            } else {
+                Log.e(TAG, "No user found with the given email.");
+                profileImage.setImageResource(R.drawable.ic_placeholder);
+            }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error fetching user profile: " + e.getMessage(), e);
+        });
     }
 
     private void fetchCampaigns() {
@@ -318,57 +305,68 @@ public class AdminMainActivity extends BaseActivity {
             ArrayList<String> bloodTypes = (ArrayList<String>) document.get("requiredBloodTypes");
             intent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
 
-            // Retrieve role from SharedPreferences
             SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
             String role = sharedPreferences.getString("USER_ROLE", "donor");
             intent.putExtra("USER_ROLE", role);
 
             startActivity(intent);
         });
-
-
         campaignList.addView(cardView);
     }
 
-
     private void showAssignPopup(String campaignId, String campaignTitle) {
-        FirebaseFirestore.getInstance()
-                .collection("Users")
-                .whereEqualTo("role", "manager")
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (querySnapshot.isEmpty()) {
-                        Toast.makeText(this, "No managers available", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+        FirebaseFirestore.getInstance().collection("Users").whereEqualTo("role", "manager").get().addOnSuccessListener(querySnapshot -> {
+            if (querySnapshot.isEmpty()) {
+                Toast.makeText(this, "No managers available", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-                    List<DocumentSnapshot> managers = querySnapshot.getDocuments();
-                    String[] managerNames = new String[managers.size()];
-                    String[] managerEmails = new String[managers.size()];
+            List<DocumentSnapshot> managers = querySnapshot.getDocuments();
+            String[] managerNames = new String[managers.size()];
+            String[] managerEmails = new String[managers.size()];
 
-                    for (int i = 0; i < managers.size(); i++) {
-                        managerNames[i] = managers.get(i).getString("name");
-                        managerEmails[i] = managers.get(i).getString("email");
-                    }
+            for (int i = 0; i < managers.size(); i++) {
+                managerNames[i] = managers.get(i).getString("name");
+                managerEmails[i] = managers.get(i).getString("email");
+            }
 
-                    showManagerSelectionDialog(campaignId, campaignTitle, managerNames, managerEmails);
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Error fetching managers", Toast.LENGTH_SHORT).show());
+            showManagerDropdownDialog(campaignId, campaignTitle, managerNames, managerEmails);
+        }).addOnFailureListener(e -> Toast.makeText(this, "Error fetching managers", Toast.LENGTH_SHORT).show());
     }
 
-    private void showManagerSelectionDialog(String campaignId, String campaignTitle, String[] managerNames, String[] managerEmails) {
+    private void showManagerDropdownDialog(String campaignId, String campaignTitle, String[] managerNames, String[] managerEmails) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Assign Manager to " + campaignTitle);
 
-        builder.setItems(managerNames, (dialog, which) -> {
-            String selectedManagerName = managerNames[which];
-            String selectedManagerEmail = managerEmails[which];
+        View dialogView = getLayoutInflater().inflate(R.layout.assign_manager, null);
+        builder.setView(dialogView);
 
-            assignManagerToCampaign(campaignId, selectedManagerName, selectedManagerEmail);
+        Spinner managerSpinner = dialogView.findViewById(R.id.managerSpinner);
+        Button assignButton = dialogView.findViewById(R.id.assignButton);
+        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, managerNames);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        managerSpinner.setAdapter(adapter);
+
+        AlertDialog dialog = builder.create();
+
+        assignButton.setOnClickListener(v -> {
+            int selectedIndex = managerSpinner.getSelectedItemPosition();
+            if (selectedIndex >= 0) {
+                String selectedManagerName = managerNames[selectedIndex];
+                String selectedManagerEmail = managerEmails[selectedIndex];
+
+                assignManagerToCampaign(campaignId, selectedManagerName, selectedManagerEmail);
+                dialog.dismiss();
+            } else {
+                Toast.makeText(this, "Please select a manager!", Toast.LENGTH_SHORT).show();
+            }
         });
 
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-        builder.show();
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     private void assignManagerToCampaign(String campaignId, String managerName, String managerEmail) {
@@ -376,11 +374,6 @@ public class AdminMainActivity extends BaseActivity {
         updateData.put("managerName", managerName);
         updateData.put("managerEmail", managerEmail);
 
-        FirebaseFirestore.getInstance()
-                .collection("DonationSites")
-                .document(campaignId)
-                .update(updateData)
-                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Manager assigned successfully", Toast.LENGTH_SHORT).show())
-                .addOnFailureListener(e -> Toast.makeText(this, "Error assigning manager", Toast.LENGTH_SHORT).show());
+        FirebaseFirestore.getInstance().collection("DonationSites").document(campaignId).update(updateData).addOnSuccessListener(aVoid -> Toast.makeText(this, "Manager assigned successfully", Toast.LENGTH_SHORT).show()).addOnFailureListener(e -> Toast.makeText(this, "Error assigning manager", Toast.LENGTH_SHORT).show());
     }
 }

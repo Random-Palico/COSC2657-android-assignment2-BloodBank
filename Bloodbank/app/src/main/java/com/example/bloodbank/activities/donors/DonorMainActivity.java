@@ -19,6 +19,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.bloodbank.R;
 import com.example.bloodbank.activities.CampaignDetailActivity;
+import com.example.bloodbank.activities.NotificationActivity;
 import com.example.bloodbank.handler.BaseActivity;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -47,6 +48,34 @@ public class DonorMainActivity extends BaseActivity {
         initializeViews();
 
         fetchCampaigns();
+
+        ImageView notificationButton = findViewById(R.id.notificationButton);
+        checkForUnreadNotifications(notificationButton);
+
+
+        notificationButton.setOnClickListener(v -> {
+            Intent intent = new Intent(DonorMainActivity.this, NotificationActivity.class);
+            intent.putExtra("RECEIVER_IDS", new String[]{"all"});
+            startActivity(intent);
+        });
+    }
+
+    private void checkForUnreadNotifications(ImageView notificationButton) {
+        db.collection("Notifications")
+                .whereEqualTo("receiverId", "all")
+                .whereEqualTo("status", "unread")
+                .addSnapshotListener((querySnapshot, e) -> {
+                    if (e != null) {
+                        Log.e(TAG, "Failed to listen for notifications: " + e.getMessage());
+                        return;
+                    }
+
+                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
+                        notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
+                    } else {
+                        notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
+                    }
+                });
     }
 
     @Override

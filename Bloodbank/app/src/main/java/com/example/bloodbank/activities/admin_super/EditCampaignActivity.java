@@ -183,16 +183,68 @@ public class EditCampaignActivity extends AppCompatActivity {
             put("lng", selectedLatLng.longitude);
         }});
 
-        db.collection("DonationSites").document(campaignId).update(updatedData)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Campaign updated successfully!", Toast.LENGTH_SHORT).show();
+        db.collection("DonationSites").document(campaignId).get().addOnSuccessListener(snapshot -> {
+            if (!snapshot.exists()) {
+                Toast.makeText(this, "Campaign not found.", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-                    Intent intent = new Intent(this, AdminMainActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                    finish();
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Error updating campaign: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            // Compare current data with new data
+            Map<String, Object> existingData = snapshot.getData();
+            List<String> updatedFields = new ArrayList<>();
+
+            if (!title.equals(existingData.get("siteName"))) {
+                updatedFields.add("Title");
+            }
+            if (!description.equals(existingData.get("description"))) {
+                updatedFields.add("Description");
+            }
+            if (!selectedDate.equals(existingData.get("eventDate"))) {
+                updatedFields.add("Event Date");
+            }
+            if (!selectedShortName.equals(existingData.get("shortName")) || !selectedAddress.equals(existingData.get("address"))) {
+                updatedFields.add("Location");
+            }
+            if (!List.of(bloodTypes).equals(existingData.get("requiredBloodTypes"))) {
+                updatedFields.add("Required Blood Types");
+            }
+
+            // Update the campaign
+            db.collection("DonationSites").document(campaignId).update(updatedData)
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(this, "Campaign updated successfully!", Toast.LENGTH_SHORT).show();
+                        sendUpdateNotifications(title, updatedFields);
+                        finish();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Error updating campaign: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+        });
+    }
+
+    private void sendUpdateNotifications(String title, List<String> updatedFields) {
+        for (String field : updatedFields) {
+            String message = title + " has an updated " + field + ".";
+
+            if (field.equals("Location")) {
+                message = title + "'s location has been updated to " + selectedShortName + " at " + selectedAddress + ".";
+            }
+
+            Map<String, Object> notification = new HashMap<>();
+            notification.put("receiverId", "all");
+            notification.put("message", message);
+            notification.put("timestamp", System.currentTimeMillis());
+            notification.put("status", "unread");
+            notification.put("type", "campaign_update");
+
+            db.collection("Notifications").add(notification)
+                    .addOnSuccessListener(documentReference -> {
+                        // Notification success - for debugging
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+        }
     }
 
     @Override

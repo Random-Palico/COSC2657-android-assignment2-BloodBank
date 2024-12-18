@@ -173,8 +173,24 @@ public class AddCampaignActivity extends AppCompatActivity {
 
         db.collection("DonationSites").add(campaignData).addOnSuccessListener(documentReference -> {
             Toast.makeText(this, "Campaign added successfully!", Toast.LENGTH_SHORT).show();
+            sendCampaignNotification(title, shortName);
             setResult(RESULT_OK);
             finish();
         }).addOnFailureListener(e -> Toast.makeText(this, "Error adding campaign: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
+    private void sendCampaignNotification(String title, String shortName) {
+        Map<String, Object> notification = new HashMap<>();
+        notification.put("receiverId", "all");
+        notification.put("message", title + " at " + shortName + " has been added.");
+        notification.put("timestamp", System.currentTimeMillis());
+        notification.put("status", "unread");
+        notification.put("type", "campaign");
+
+        db.collection("Notifications").add(notification).addOnSuccessListener(documentReference -> {
+            Toast.makeText(this, "Notification sent successfully!", Toast.LENGTH_SHORT).show();
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        });
     }
 }

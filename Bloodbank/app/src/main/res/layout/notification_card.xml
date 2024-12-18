@@ -1,24 +1,26 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
-    android:background="@drawable/border_card"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:background="@drawable/border_card"
+    android:padding="8dp"
+    android:layout_margin="8dp">
 
     <TextView
         android:id="@+id/notificationText"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@android:color/black"
+        android:text="Notification message"
         android:textSize="16sp"
-        android:textStyle="bold" />
+        android:padding="4dp" />
 
     <TextView
         android:id="@+id/timestamp"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@android:color/darker_gray"
-        android:textSize="12sp" />
+        android:text="Timestamp"
+        android:textSize="12sp"
+        android:padding="4dp"
+        android:textColor="#888888" />
 </LinearLayout>
