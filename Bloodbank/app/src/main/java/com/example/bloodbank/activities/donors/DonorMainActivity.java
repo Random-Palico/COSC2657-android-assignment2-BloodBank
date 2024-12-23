@@ -56,8 +56,10 @@ public class DonorMainActivity extends BaseActivity {
         notificationButton.setOnClickListener(v -> {
             Intent intent = new Intent(DonorMainActivity.this, NotificationActivity.class);
             intent.putExtra("RECEIVER_IDS", new String[]{"all"});
+            intent.putExtra("USER_ROLE", "donor");
             startActivity(intent);
         });
+
     }
 
     private void checkForUnreadNotifications(ImageView notificationButton) {

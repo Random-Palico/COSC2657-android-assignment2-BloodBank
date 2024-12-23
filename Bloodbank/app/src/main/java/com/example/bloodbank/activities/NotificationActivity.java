@@ -35,6 +35,7 @@ public class NotificationActivity extends AppCompatActivity {
     private ArrayList<String> unreadNotificationIds = new ArrayList<>();
     private List<String> receiverIds;
     private String currentTab = "all";
+    private String userRole;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +49,7 @@ public class NotificationActivity extends AppCompatActivity {
         noNotificationsText = findViewById(R.id.noNotificationsText);
 
         receiverIds = Arrays.asList(getIntent().getStringArrayExtra("RECEIVER_IDS"));
+        userRole = getIntent().getStringExtra("USER_ROLE");
 
         setupTabs();
         loadNotifications("all");
@@ -56,7 +58,11 @@ public class NotificationActivity extends AppCompatActivity {
     private void setupTabs() {
         notificationTabs.addTab(notificationTabs.newTab().setText("All"));
         notificationTabs.addTab(notificationTabs.newTab().setText("Read"));
-        notificationTabs.addTab(notificationTabs.newTab().setText("Pending"));
+
+        // Show pending tab only for admin
+        if ("admin".equalsIgnoreCase(userRole)) {
+            notificationTabs.addTab(notificationTabs.newTab().setText("Pending"));
+        }
 
         notificationTabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
@@ -104,7 +110,7 @@ public class NotificationActivity extends AppCompatActivity {
                             }
 
                             if ("all".equals(filter) || (filter.equals("read") && "read".equals(status))
-                                    || (filter.equals("pending") && "pending".equals(status))) {
+                                    || (filter.equals("pending") && "pending".equals(status) && "admin".equalsIgnoreCase(userRole))) {
                                 addNotificationCard(notification, status, filter);
                             }
                         }
@@ -167,6 +173,6 @@ public class NotificationActivity extends AppCompatActivity {
                     }
                     return null;
                 }).addOnSuccessListener(aVoid -> Log.d(TAG, "Notifications marked as read."))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to update notifications: ", e));
+                .addOnFailureListener(e -> Log.e(TAG, "There are no new notifications at the moment ", e));
     }
 }

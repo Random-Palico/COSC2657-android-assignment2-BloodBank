@@ -69,6 +69,7 @@ public class AdminMainActivity extends BaseActivity {
         notificationButton.setOnClickListener(v -> {
             Intent intent = new Intent(AdminMainActivity.this, NotificationActivity.class);
             intent.putExtra("RECEIVER_IDS", new String[]{"adminManager", "all"});
+            intent.putExtra("USER_ROLE", "admin");
             startActivity(intent);
         });
 
