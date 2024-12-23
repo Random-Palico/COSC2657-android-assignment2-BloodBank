@@ -22,7 +22,7 @@
             android:name=".activities.NotificationActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.donors.DonorRegisterActivity"
+            android:name=".activities.DonorRegisterActivity"
             android:exported="false" />
         <activity
             android:name=".activities.profile.ProfileActivity"
@@ -42,22 +42,22 @@
             android:value="AIzaSyC7uUil22WO6t-Yswk1_oI2c54dpVzQyB0" />
 
         <activity
-            android:name=".activities.admin_super.EditCampaignActivity"
+            android:name=".activities.add_edit_campaign.EditCampaignActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.admin_super.AddCampaignActivity"
+            android:name=".activities.add_edit_campaign.AddCampaignActivity"
             android:exported="false" />
         <activity
             android:name=".handler.BaseActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.admin_super.AdminMainActivity"
+            android:name=".activities.home.admin_super.AdminMainActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.ManagerMainActivity"
+            android:name=".activities.home.manager.ManagerMainActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.donors.DonorMainActivity"
+            android:name=".activities.home.donors.DonorMainActivity"
             android:exported="false" />
         <activity
             android:name=".activities.login_register.RegisterActivity"
@@ -75,7 +75,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".activities.admin_super.MapPickerActivity"
+            android:name=".activities.MapPickerActivity"
             android:exported="false" />
         <activity
             android:name=".activities.DonorManagement.DonorListActivity"

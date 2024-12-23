@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".activities.admin_super.AdminMainActivity">
+    tools:context=".activities.home.admin_super.AdminMainActivity">
 
     <LinearLayout
         android:id="@+id/welcomeLayout"

@@ -1,4 +1,4 @@
-package com.example.bloodbank.activities.donors;
+package com.example.bloodbank.activities;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
@@ -14,10 +14,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.bloodbank.R;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;

@@ -1,4 +1,4 @@
-package com.example.bloodbank.activities.donors;
+package com.example.bloodbank.activities.home.manager;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -13,6 +13,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SearchView;
 
 import com.bumptech.glide.Glide;
@@ -25,13 +26,12 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class DonorMainActivity extends BaseActivity {
+public class ManagerMainActivity extends BaseActivity {
 
-    private static final String TAG = "DonorMainActivity";
+    private static final String TAG = "ManagerMainActivity";
     private FirebaseFirestore db;
     private LinearLayout campaignList;
     private List<DocumentSnapshot> campaigns = new ArrayList<>();
@@ -40,10 +40,9 @@ public class DonorMainActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main_donor);
+        setContentView(R.layout.activity_manager_main);
 
         db = FirebaseFirestore.getInstance();
-
         setupBottomNavigation();
 
         initializeViews();
@@ -52,7 +51,6 @@ public class DonorMainActivity extends BaseActivity {
 
         ImageView notificationButton = findViewById(R.id.notificationButton);
         checkForUnreadNotifications(notificationButton);
-
 
         notificationButton.setOnClickListener(v -> {
             SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
@@ -63,58 +61,13 @@ public class DonorMainActivity extends BaseActivity {
                 return;
             }
 
-            Intent intent = new Intent(DonorMainActivity.this, NotificationActivity.class);
+            Intent intent = new Intent(ManagerMainActivity.this, NotificationActivity.class);
             intent.putExtra("USER_ID", userId);
-            intent.putExtra("RECEIVER_IDS", new String[]{"all"});
-            intent.putExtra("USER_ROLE", "donor");
+            intent.putExtra("RECEIVER_IDS", new String[]{"all", "adminManager"});
+            intent.putExtra("USER_ROLE", "manager");
             startActivity(intent);
         });
-
-
     }
-
-    private void checkForUnreadNotifications(ImageView notificationButton) {
-        String userId = getIntent().getStringExtra("USER_ID");
-        if (userId == null) {
-            Log.e(TAG, "User ID is null. Ensure it is passed in the intent.");
-            return;
-        }
-
-        List<String> validReceiverIds = new ArrayList<>(Arrays.asList("all", userId));
-
-        db.collection("Notifications")
-                .whereIn("receiverId", validReceiverIds)
-                .whereEqualTo("status", "unread")
-                .addSnapshotListener((querySnapshot, e) -> {
-                    if (e != null) {
-                        Log.e(TAG, "Failed to listen for notifications: " + e.getMessage());
-                        return;
-                    }
-
-                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
-                        notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
-                    } else {
-                        notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
-                    }
-                });
-    }
-
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (resultCode == RESULT_OK) {
-            if (requestCode == 100) {
-                SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-                String userName = sharedPreferences.getString("USER_NAME", "Donor");
-                TextView welcomeUser = findViewById(R.id.welcomeUser);
-                welcomeUser.setText("Hi " + userName);
-                fetchProfileImage();
-            }
-        }
-    }
-
 
     private void initializeViews() {
         TextView welcomeUser = findViewById(R.id.welcomeUser);
@@ -123,11 +76,9 @@ public class DonorMainActivity extends BaseActivity {
 
         String userName = getIntent().getStringExtra("USER_NAME");
         if (userName == null) {
-            userName = getSharedPreferences("LoginPrefs", MODE_PRIVATE).getString("USER_NAME", "Donor");
+            userName = getSharedPreferences("LoginPrefs", MODE_PRIVATE).getString("USER_NAME", "Manager");
         }
-        welcomeUser.setText(userName != null ? "Hi " + userName : "Hi Donor");
-
-        getIntent().getStringExtra("USER_ROLE");
+        welcomeUser.setText(userName != null ? "Hi " + userName : "Hi Manager");
 
         fetchProfileImage();
 
@@ -147,11 +98,32 @@ public class DonorMainActivity extends BaseActivity {
         });
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        fetchProfileImage();
-        fetchCampaigns();
+    private void checkForUnreadNotifications(ImageView notificationButton) {
+        String userId = getIntent().getStringExtra("USER_ID");
+        if (userId == null) {
+            Log.e(TAG, "User ID is null. Ensure it is passed in the intent.");
+            return;
+        }
+
+        List<String> validReceiverIds = new ArrayList<>();
+        validReceiverIds.add("all");
+        validReceiverIds.add("adminManager");
+
+        db.collection("Notifications")
+                .whereIn("receiverId", validReceiverIds)
+                .whereEqualTo("status", "unread")
+                .addSnapshotListener((querySnapshot, e) -> {
+                    if (e != null) {
+                        Log.e(TAG, "Failed to listen for notifications: " + e.getMessage());
+                        return;
+                    }
+
+                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
+                        notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
+                    } else {
+                        notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
+                    }
+                });
     }
 
     private void fetchProfileImage() {
@@ -193,32 +165,25 @@ public class DonorMainActivity extends BaseActivity {
 
     private void fetchCampaigns() {
         Log.d(TAG, "Fetching campaigns...");
-        if (campaignList == null) {
-            Log.e(TAG, "Campaign list layout is null. Make sure the layout ID is correct.");
-            return;
-        }
+        db.collection("DonationSites")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.isEmpty()) {
+                        Toast.makeText(this, "No campaigns available!", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
 
-        db.collection("DonationSites").get().addOnSuccessListener(querySnapshot -> {
-            if (querySnapshot.isEmpty()) {
-                Toast.makeText(this, "No campaigns available!", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            campaigns.clear();
-            campaigns.addAll(querySnapshot.getDocuments());
-            displayCampaigns(campaigns);
-        }).addOnFailureListener(e -> {
-            Log.e(TAG, "Error fetching campaigns", e);
-            Toast.makeText(this, "Error fetching campaigns: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        });
+                    campaigns.clear();
+                    campaigns.addAll(querySnapshot.getDocuments());
+                    displayCampaigns(campaigns);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error fetching campaigns", e);
+                    Toast.makeText(this, "Error fetching campaigns: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void displayCampaigns(List<DocumentSnapshot> campaignDocuments) {
-        if (campaignList == null) {
-            Log.e(TAG, "Campaign list layout is null. Ensure layout ID matches.");
-            return;
-        }
-
         campaignList.removeAllViews();
         for (DocumentSnapshot document : campaignDocuments) {
             String title = document.getString("siteName");
@@ -270,65 +235,48 @@ public class DonorMainActivity extends BaseActivity {
 
         Glide.with(this).load(eventImg).into(campaignImage);
 
-        String address = document.getString("address");
-
-        // Register button visible for donors
         registerButton.setVisibility(View.VISIBLE);
         registerButton.setOnClickListener(v -> {
-            Intent intent = new Intent(this, DonorRegisterActivity.class);
-            intent.putExtra("campaignId", document.getId());
-            intent.putExtra("campaignTitle", title);
-            intent.putExtra("campaignDate", date);
-            intent.putExtra("campaignLocation", location);
-            intent.putExtra("campaignAddress", address);
-            intent.putExtra("campaignImage", eventImg);
-
-            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-            String userName = sharedPreferences.getString("USER_NAME", "");
-            String userBloodType = sharedPreferences.getString("USER_BLOOD_TYPE", "");
-            String userLocation = sharedPreferences.getString("USER_LOCATION", "");
-
-            intent.putExtra("userName", userName);
-            intent.putExtra("userBloodType", userBloodType);
-            intent.putExtra("userLocation", userLocation);
-
-            startActivity(intent);
-        });
-
-        editButton.setVisibility(View.GONE);
-        assignButton.setVisibility(View.GONE);
-
-        campaignList.addView(cardView);
-
-        cardView.setOnClickListener(v -> {
             Intent intent = new Intent(this, CampaignDetailActivity.class);
             intent.putExtra("campaignId", document.getId());
-            intent.putExtra("campaignTitle", title);
-            intent.putExtra("campaignDescription", document.getString("description"));
-            intent.putExtra("campaignDate", date);
-            intent.putExtra("campaignImage", eventImg);
-            intent.putExtra("campaignLocation", location);
-            intent.putExtra("campaignAddress", address);
-
-            Map<String, Object> locationLatLng = (Map<String, Object>) document.get("locationLatLng");
-            if (locationLatLng != null) {
-                double lat = (double) locationLatLng.get("lat");
-                double lng = (double) locationLatLng.get("lng");
-                intent.putExtra("latitude", lat);
-                intent.putExtra("longitude", lng);
-            }
-
-            ArrayList<String> bloodTypes = (ArrayList<String>) document.get("requiredBloodTypes");
-            intent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
-
-            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-            String role = sharedPreferences.getString("USER_ROLE", "donor");
-            intent.putExtra("USER_ROLE", role);
-
             startActivity(intent);
         });
+
+        editButton.setVisibility(View.VISIBLE);
+        editButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, CampaignDetailActivity.class);
+            intent.putExtra("campaignId", document.getId());
+            startActivity(intent);
+        });
+
+        assignButton.setVisibility(View.VISIBLE);
+        assignButton.setOnClickListener(v -> showAssignConfirmation(document));
+
+        campaignList.addView(cardView);
+    }
+
+    private void showAssignConfirmation(DocumentSnapshot document) {
+        new AlertDialog.Builder(this)
+                .setTitle("Assign Task")
+                .setMessage("Are you sure you want to assign this task?")
+                .setPositiveButton("Yes", (dialog, which) -> assignManagerToCampaign(document))
+                .setNegativeButton("No", null)
+                .show();
+    }
+
+    private void assignManagerToCampaign(DocumentSnapshot document) {
+        SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+        String managerName = sharedPreferences.getString("USER_NAME", "Manager");
+        String managerEmail = sharedPreferences.getString("USER_EMAIL", "");
+
+        Map<String, Object> updateData = Map.of(
+                "managerName", managerName,
+                "managerEmail", managerEmail
+        );
+
+        db.collection("DonationSites").document(document.getId())
+                .update(updateData)
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Task assigned successfully!", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to assign task.", Toast.LENGTH_SHORT).show());
     }
 }
-
-
-

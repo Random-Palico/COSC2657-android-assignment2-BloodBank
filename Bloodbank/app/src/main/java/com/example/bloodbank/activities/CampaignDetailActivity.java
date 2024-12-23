@@ -11,7 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.example.bloodbank.R;
-import com.example.bloodbank.activities.admin_super.EditCampaignActivity;
+import com.example.bloodbank.activities.add_edit_campaign.EditCampaignActivity;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;

@@ -1,4 +1,4 @@
-package com.example.bloodbank.activities.admin_super;
+package com.example.bloodbank.activities;
 
 import android.app.AlertDialog;
 import android.content.Intent;

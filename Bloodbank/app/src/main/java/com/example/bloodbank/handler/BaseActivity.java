@@ -10,9 +10,10 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.bloodbank.R;
 import com.example.bloodbank.activities.DonationSiteActivity;
-import com.example.bloodbank.activities.donors.DonorMainActivity;
+import com.example.bloodbank.activities.home.donors.DonorMainActivity;
 import com.example.bloodbank.activities.DonorManagement.DonorListActivity;
-import com.example.bloodbank.activities.admin_super.AdminMainActivity;
+import com.example.bloodbank.activities.home.admin_super.AdminMainActivity;
+import com.example.bloodbank.activities.home.manager.ManagerMainActivity;
 import com.example.bloodbank.activities.profile.ProfileActivity;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -51,6 +52,8 @@ public class BaseActivity extends AppCompatActivity {
                     navigateToActivity(AdminMainActivity.class);
                 } else if ("donor".equals(userRole) && !(this instanceof DonorMainActivity)) {
                     navigateToActivity(DonorMainActivity.class);
+                } else if ("manager".equals(userRole) && !(this instanceof ManagerMainActivity)) {
+                    navigateToActivity(ManagerMainActivity.class);
                 }
                 return true;
             } else if (itemId == R.id.nav_sites) {

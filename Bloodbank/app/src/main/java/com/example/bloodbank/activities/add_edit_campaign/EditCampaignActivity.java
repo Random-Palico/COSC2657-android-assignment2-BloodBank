@@ -1,4 +1,4 @@
-package com.example.bloodbank.activities.admin_super;
+package com.example.bloodbank.activities.add_edit_campaign;
 
 import android.app.DatePickerDialog;
 import android.content.Intent;
@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.example.bloodbank.R;
+import com.example.bloodbank.activities.MapPickerActivity;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
