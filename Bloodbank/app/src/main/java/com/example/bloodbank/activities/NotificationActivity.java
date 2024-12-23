@@ -4,8 +4,10 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -53,6 +55,7 @@ public class NotificationActivity extends AppCompatActivity {
 
         setupTabs();
         loadNotifications("all");
+        checkPendingNotifications();
     }
 
     private void setupTabs() {
@@ -81,53 +84,125 @@ public class NotificationActivity extends AppCompatActivity {
         });
     }
 
+    private void checkPendingNotifications() {
+        db.collection("RoleRequests")
+                .whereEqualTo("status", "pending")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!querySnapshot.isEmpty()) {
+                        Log.d(TAG, "Pending role requests available.");
+                    }
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to check pending notifications: ", e));
+    }
+
     private void loadNotifications(String filter) {
         notificationContainer.removeAllViews();
         unreadNotificationIds.clear();
 
-        db.collection("Notifications")
-                .whereIn("receiverId", receiverIds)
-                .orderBy("timestamp", Query.Direction.DESCENDING)
-                .addSnapshotListener((querySnapshot, e) -> {
-                    if (e != null) {
-                        Log.e(TAG, "Failed to load notifications: ", e);
-                        noNotificationsText.setVisibility(View.VISIBLE);
-                        noNotificationsText.setText("Failed to load notifications.");
-                        return;
-                    }
+        if ("pending".equals(filter)) {
+            loadPendingRequests();
+        } else {
+            db.collection("Notifications")
+                    .whereIn("receiverId", receiverIds)
+                    .orderBy("timestamp", Query.Direction.DESCENDING)
+                    .get()
+                    .addOnSuccessListener(querySnapshot -> {
+                        if (querySnapshot == null || querySnapshot.isEmpty()) {
+                            showNoNotificationsMessage();
+                            return;
+                        }
 
-                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
-                        noNotificationsText.setVisibility(View.GONE);
                         notificationContainer.setVisibility(View.VISIBLE);
+                        noNotificationsText.setVisibility(View.GONE);
 
                         for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
                             Map<String, Object> notification = doc.getData();
                             String status = (String) notification.get("status");
-                            String id = doc.getId();
 
                             if ("unread".equals(status)) {
-                                unreadNotificationIds.add(id);
+                                unreadNotificationIds.add(doc.getId());
                             }
 
-                            if ("all".equals(filter) || (filter.equals("read") && "read".equals(status))
-                                    || (filter.equals("pending") && "pending".equals(status) && "admin".equalsIgnoreCase(userRole))) {
-                                addNotificationCard(notification, status, filter);
-                            }
+                            addNotificationCard(notification, filter, status);
                         }
 
                         if (notificationContainer.getChildCount() == 0) {
-                            noNotificationsText.setVisibility(View.VISIBLE);
-                            noNotificationsText.setText("No notifications to display.");
+                            showNoNotificationsMessage();
                         }
-                    } else {
-                        noNotificationsText.setVisibility(View.VISIBLE);
-                        noNotificationsText.setText("No notifications to display.");
-                        notificationContainer.setVisibility(View.GONE);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to load notifications: ", e);
+                        showNoNotificationsMessage();
+                    });
+        }
+    }
+
+    private void loadPendingRequests() {
+        db.collection("RoleRequests")
+                .whereEqualTo("status", "pending")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.isEmpty()) {
+                        showNoNotificationsMessage();
+                        return;
                     }
+
+                    notificationContainer.setVisibility(View.VISIBLE);
+                    noNotificationsText.setVisibility(View.GONE);
+
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        String userId = doc.getString("userId");
+
+                        db.collection("Users").document(userId).get()
+                                .addOnSuccessListener(userDoc -> {
+                                    String userName = userDoc.exists() ? userDoc.getString("name") : "Unknown User";
+                                    addPendingRequestCard(doc, userName);
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Error fetching user data: ", e);
+                                    addPendingRequestCard(doc, "Error fetching user");
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error fetching pending requests: ", e);
+                    showNoNotificationsMessage();
                 });
     }
 
-    private void addNotificationCard(Map<String, Object> notification, String status, String currentFilter) {
+    private void addPendingRequestCard(DocumentSnapshot roleRequest, String userName) {
+        View pendingCard = getLayoutInflater().inflate(R.layout.pending_card, null);
+
+        TextView requestText = pendingCard.findViewById(R.id.userName);
+        Button acceptButton = pendingCard.findViewById(R.id.acceptButton);
+        Button declineButton = pendingCard.findViewById(R.id.declineButton);
+
+        String roleId = roleRequest.getId();
+        requestText.setText(userName + " has requested to be a Manager");
+
+        acceptButton.setOnClickListener(v -> {
+            db.collection("Users").document(roleRequest.getString("userId"))
+                    .update("role", "manager")
+                    .addOnSuccessListener(aVoid -> {
+                        db.collection("RoleRequests").document(roleId)
+                                .update("status", "approved");
+                        Toast.makeText(this, "Request approved!", Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e -> Log.e(TAG, "Error approving request: ", e));
+        });
+
+        declineButton.setOnClickListener(v -> {
+            db.collection("RoleRequests").document(roleId)
+                    .update("status", "declined")
+                    .addOnSuccessListener(aVoid -> Toast.makeText(this, "Request declined.", Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Log.e(TAG, "Error declining request: ", e));
+        });
+
+        notificationContainer.addView(pendingCard);
+    }
+
+    private void addNotificationCard(Map<String, Object> notification, String currentFilter, String status) {
         View notificationCard = getLayoutInflater().inflate(R.layout.notification_card, null);
 
         TextView notificationText = notificationCard.findViewById(R.id.notificationText);
@@ -157,6 +232,12 @@ public class NotificationActivity extends AppCompatActivity {
         notificationContainer.addView(notificationCard);
     }
 
+    private void showNoNotificationsMessage() {
+        notificationContainer.setVisibility(View.GONE);
+        noNotificationsText.setVisibility(View.VISIBLE);
+        noNotificationsText.setText("No notifications to display.");
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -173,6 +254,6 @@ public class NotificationActivity extends AppCompatActivity {
                     }
                     return null;
                 }).addOnSuccessListener(aVoid -> Log.d(TAG, "Notifications marked as read."))
-                .addOnFailureListener(e -> Log.e(TAG, "There are no new notifications at the moment ", e));
+                .addOnFailureListener(e -> Log.e(TAG, "Error marking notifications as read: ", e));
     }
 }

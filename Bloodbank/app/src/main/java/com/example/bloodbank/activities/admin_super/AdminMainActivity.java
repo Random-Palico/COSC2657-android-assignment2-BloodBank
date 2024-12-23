@@ -66,12 +66,17 @@ public class AdminMainActivity extends BaseActivity {
         ImageView notificationButton = findViewById(R.id.notificationButton);
         checkForUnreadNotifications(notificationButton);
 
+
+        final String EXTRA_RECEIVER_IDS = "RECEIVER_IDS";
+        final String EXTRA_USER_ROLE = "USER_ROLE";
+
         notificationButton.setOnClickListener(v -> {
             Intent intent = new Intent(AdminMainActivity.this, NotificationActivity.class);
-            intent.putExtra("RECEIVER_IDS", new String[]{"adminManager", "all"});
-            intent.putExtra("USER_ROLE", "admin");
+            intent.putExtra(EXTRA_RECEIVER_IDS, new String[]{"adminManager", "all", "admin"});
+            intent.putExtra(EXTRA_USER_ROLE, currentUserRole);
             startActivity(intent);
         });
+
 
         TextView welcomeUser = findViewById(R.id.welcomeUser);
         String userName = sharedPreferences.getString("USER_NAME", "Admin");
@@ -135,21 +140,30 @@ public class AdminMainActivity extends BaseActivity {
         }
     }
 
-    private void checkForUnreadNotifications(ImageView notificationButton) {
-        db.collection("Notifications").whereIn("receiverId", List.of("adminManager", "all")).whereEqualTo("status", "unread").addSnapshotListener((querySnapshot, e) -> {
-            if (e != null) {
-                Log.e(TAG, "Failed to listen for notifications: " + e.getMessage());
-                return;
-            }
 
-            if (querySnapshot != null && !querySnapshot.isEmpty()) {
-                // Highlight the notification icon if there are unread notifications
-                notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
-            } else {
-                // Reset the notification icon if there are no unread notifications
-                notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
-            }
-        });
+    private void checkForUnreadNotifications(ImageView notificationButton) {
+        db.collection("Notifications")
+                .whereEqualTo("receiverId", "admin")
+                .whereEqualTo("status", "unread")
+                .get()
+                .addOnSuccessListener(notificationsSnapshot -> {
+                    boolean hasUnreadNotifications = notificationsSnapshot != null && !notificationsSnapshot.isEmpty();
+
+                    db.collection("RoleRequests")
+                            .whereEqualTo("status", "pending")
+                            .get()
+                            .addOnSuccessListener(roleRequestsSnapshot -> {
+                                boolean hasPendingRequests = roleRequestsSnapshot != null && !roleRequestsSnapshot.isEmpty();
+
+                                if (hasUnreadNotifications || hasPendingRequests) {
+                                    notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
+                                } else {
+                                    notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
+                                }
+                            })
+                            .addOnFailureListener(e -> Log.e(TAG, "Error fetching pending requests: ", e));
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Error fetching unread notifications: ", e));
     }
 
     private void fetchProfileImage() {

@@ -108,6 +108,35 @@
                     android:text="Location: "
                     android:textSize="16sp" />
 
+                <LinearLayout
+                    android:id="@+id/requestManagerCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/border_card"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/requestManagerText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Want to contribute more? Become a Site Manager and help organize impactful donation campaigns!"
+                        android:textColor="@color/black"
+                        android:textSize="16sp" />
+
+                    <Button
+                        android:id="@+id/requestManagerButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="@color/purple_500"
+                        android:text="Request to be a Site Manager"
+                        android:textColor="@color/white" />
+                </LinearLayout>
+
+
                 <Button
                     android:id="@+id/editProfileButton"
                     android:layout_width="match_parent"
