@@ -62,7 +62,6 @@ public class NotificationActivity extends AppCompatActivity {
         notificationTabs.addTab(notificationTabs.newTab().setText("All"));
         notificationTabs.addTab(notificationTabs.newTab().setText("Read"));
 
-        // Show pending tab only for admin
         if ("admin".equalsIgnoreCase(userRole)) {
             notificationTabs.addTab(notificationTabs.newTab().setText("Pending"));
         }
@@ -100,45 +99,68 @@ public class NotificationActivity extends AppCompatActivity {
         notificationContainer.removeAllViews();
         unreadNotificationIds.clear();
 
-        if ("pending".equals(filter)) {
+        if ("pending".equalsIgnoreCase(filter)) {
             loadPendingRequests();
-        } else {
-            db.collection("Notifications")
-                    .whereIn("receiverId", receiverIds)
-                    .orderBy("timestamp", Query.Direction.DESCENDING)
-                    .get()
-                    .addOnSuccessListener(querySnapshot -> {
-                        if (querySnapshot == null || querySnapshot.isEmpty()) {
-                            showNoNotificationsMessage();
-                            return;
-                        }
-
-                        notificationContainer.setVisibility(View.VISIBLE);
-                        noNotificationsText.setVisibility(View.GONE);
-
-                        for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                            Map<String, Object> notification = doc.getData();
-                            String status = (String) notification.get("status");
-
-                            if ("unread".equals(status)) {
-                                unreadNotificationIds.add(doc.getId());
-                            }
-
-                            addNotificationCard(notification, filter, status);
-                        }
-
-                        if (notificationContainer.getChildCount() == 0) {
-                            showNoNotificationsMessage();
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "Failed to load notifications: ", e);
-                        showNoNotificationsMessage();
-                    });
+            return;
         }
+
+        // Retrieve the user ID and role from SharedPreferences or Intent
+        String userId = getIntent().getStringExtra("USER_ID");
+        String userRole = getIntent().getStringExtra("USER_ROLE");
+
+        if (userId == null || userRole == null) {
+            Log.e(TAG, "User ID or Role is null. Ensure it is passed in the intent.");
+            showNoNotificationsMessage();
+            return;
+        }
+
+        List<String> validReceiverIds = new ArrayList<>(Arrays.asList("all", userId));
+        if ("admin".equalsIgnoreCase(userRole)) {
+            validReceiverIds.add("admin");
+        } else if ("adminManager".equalsIgnoreCase(userRole)) {
+            validReceiverIds.add("adminManager");
+        }
+
+        db.collection("Notifications")
+                .whereIn("receiverId", validReceiverIds)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot == null || querySnapshot.isEmpty()) {
+                        showNoNotificationsMessage();
+                        return;
+                    }
+
+                    notificationContainer.setVisibility(View.VISIBLE);
+                    noNotificationsText.setVisibility(View.GONE);
+
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Map<String, Object> notification = doc.getData();
+                        String status = (String) notification.get("status");
+
+                        if ("unread".equals(status)) {
+                            unreadNotificationIds.add(doc.getId());
+                        }
+
+                        addNotificationCard(notification, filter, status);
+                    }
+
+                    if (notificationContainer.getChildCount() == 0) {
+                        showNoNotificationsMessage();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to load notifications: ", e);
+                    showNoNotificationsMessage();
+                });
     }
 
     private void loadPendingRequests() {
+        if (!"admin".equalsIgnoreCase(userRole)) {
+            showNoNotificationsMessage();
+            return;
+        }
+
         db.collection("RoleRequests")
                 .whereEqualTo("status", "pending")
                 .get()
@@ -171,6 +193,7 @@ public class NotificationActivity extends AppCompatActivity {
                 });
     }
 
+
     private void addPendingRequestCard(DocumentSnapshot roleRequest, String userName) {
         View pendingCard = getLayoutInflater().inflate(R.layout.pending_card, null);
 
@@ -186,8 +209,12 @@ public class NotificationActivity extends AppCompatActivity {
                     .update("role", "manager")
                     .addOnSuccessListener(aVoid -> {
                         db.collection("RoleRequests").document(roleId)
-                                .update("status", "approved");
-                        Toast.makeText(this, "Request approved!", Toast.LENGTH_SHORT).show();
+                                .update("status", "approved")
+                                .addOnSuccessListener(aVoid1 -> {
+                                    sendNotificationToUser(roleRequest.getString("userId"), "Your role request has been approved.");
+                                    updatePendingCardUI(pendingCard, "You have approved " + userName + " to be a Site Manager.");
+                                })
+                                .addOnFailureListener(e -> Log.e(TAG, "Error updating role request status: ", e));
                     })
                     .addOnFailureListener(e -> Log.e(TAG, "Error approving request: ", e));
         });
@@ -195,11 +222,44 @@ public class NotificationActivity extends AppCompatActivity {
         declineButton.setOnClickListener(v -> {
             db.collection("RoleRequests").document(roleId)
                     .update("status", "declined")
-                    .addOnSuccessListener(aVoid -> Toast.makeText(this, "Request declined.", Toast.LENGTH_SHORT).show())
+                    .addOnSuccessListener(aVoid -> {
+                        sendNotificationToUser(roleRequest.getString("userId"), "Your role request has been declined.");
+
+                        updatePendingCardUI(pendingCard, "You have declined " + userName + "'s request.");
+                    })
                     .addOnFailureListener(e -> Log.e(TAG, "Error declining request: ", e));
         });
 
         notificationContainer.addView(pendingCard);
+    }
+
+    private void sendNotificationToUser(String userId, String message) {
+        Map<String, Object> notificationData = Map.of(
+                "receiverId", userId,
+                "message", message,
+                "timestamp", System.currentTimeMillis(),
+                "status", "unread",
+                "type", "roleRequest"
+        );
+
+        db.collection("Notifications")
+                .add(notificationData)
+                .addOnSuccessListener(docRef -> Log.d(TAG, "Notification sent to user: " + userId))
+                .addOnFailureListener(e -> Log.e(TAG, "Error sending notification: ", e));
+    }
+
+    private void updatePendingCardUI(View pendingCard, String message) {
+        pendingCard.setBackgroundResource(R.drawable.border_card);
+
+        TextView requestText = pendingCard.findViewById(R.id.userName);
+        Button acceptButton = pendingCard.findViewById(R.id.acceptButton);
+        Button declineButton = pendingCard.findViewById(R.id.declineButton);
+
+        requestText.setText(message);
+        requestText.setTextColor(Color.GRAY);
+
+        acceptButton.setVisibility(View.GONE);
+        declineButton.setVisibility(View.GONE);
     }
 
     private void addNotificationCard(Map<String, Object> notification, String currentFilter, String status) {

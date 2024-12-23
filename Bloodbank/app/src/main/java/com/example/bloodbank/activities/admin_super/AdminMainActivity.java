@@ -28,6 +28,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,11 +73,11 @@ public class AdminMainActivity extends BaseActivity {
 
         notificationButton.setOnClickListener(v -> {
             Intent intent = new Intent(AdminMainActivity.this, NotificationActivity.class);
-            intent.putExtra(EXTRA_RECEIVER_IDS, new String[]{"adminManager", "all", "admin"});
-            intent.putExtra(EXTRA_USER_ROLE, currentUserRole);
+            intent.putExtra("RECEIVER_IDS", new String[]{"all", "admin", "adminManager"});
+            intent.putExtra("USER_ID", currentUserId);
+            intent.putExtra("USER_ROLE", currentUserRole);
             startActivity(intent);
         });
-
 
         TextView welcomeUser = findViewById(R.id.welcomeUser);
         String userName = sharedPreferences.getString("USER_NAME", "Admin");
@@ -142,28 +143,37 @@ public class AdminMainActivity extends BaseActivity {
 
 
     private void checkForUnreadNotifications(ImageView notificationButton) {
+        String userId = getIntent().getStringExtra("USER_ID");
+        String userRole = getIntent().getStringExtra("USER_ROLE");
+
+        if (userId == null || userRole == null) {
+            Log.e(TAG, "User ID or Role is null. Ensure it is passed in the intent.");
+            return;
+        }
+
+        // Include user-specific, "all", and role-specific IDs in the query
+        List<String> validReceiverIds = new ArrayList<>(Arrays.asList("all", userId));
+        if ("admin".equalsIgnoreCase(userRole)) {
+            validReceiverIds.add("admin");
+        } else if ("adminManager".equalsIgnoreCase(userRole)) {
+            validReceiverIds.add("adminManager");
+        }
+
         db.collection("Notifications")
-                .whereEqualTo("receiverId", "admin")
+                .whereIn("receiverId", validReceiverIds)
                 .whereEqualTo("status", "unread")
-                .get()
-                .addOnSuccessListener(notificationsSnapshot -> {
-                    boolean hasUnreadNotifications = notificationsSnapshot != null && !notificationsSnapshot.isEmpty();
+                .addSnapshotListener((querySnapshot, e) -> {
+                    if (e != null) {
+                        Log.e(TAG, "Failed to listen for notifications: " + e.getMessage());
+                        return;
+                    }
 
-                    db.collection("RoleRequests")
-                            .whereEqualTo("status", "pending")
-                            .get()
-                            .addOnSuccessListener(roleRequestsSnapshot -> {
-                                boolean hasPendingRequests = roleRequestsSnapshot != null && !roleRequestsSnapshot.isEmpty();
-
-                                if (hasUnreadNotifications || hasPendingRequests) {
-                                    notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
-                                } else {
-                                    notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
-                                }
-                            })
-                            .addOnFailureListener(e -> Log.e(TAG, "Error fetching pending requests: ", e));
-                })
-                .addOnFailureListener(e -> Log.e(TAG, "Error fetching unread notifications: ", e));
+                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
+                        notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
+                    } else {
+                        notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
+                    }
+                });
     }
 
     private void fetchProfileImage() {

@@ -83,10 +83,11 @@ public class LoginActivity extends AppCompatActivity {
                                             editor.putString("USER_EMAIL", email);
                                             editor.putString("USER_NAME", name);
                                             editor.putString("USER_ROLE", role);
+                                            editor.putString("USER_ID", userId);
                                             editor.putBoolean(KEY_REMEMBER, rememberMeCheckBox.isChecked());
                                             editor.apply();
 
-                                            navigateToRoleActivity(role, name);
+                                            navigateToRoleActivity(role, name, userId);
                                         } else {
                                             Toast.makeText(this, "User data not found in Firestore!", Toast.LENGTH_SHORT).show();
                                         }
@@ -100,6 +101,7 @@ public class LoginActivity extends AppCompatActivity {
                                     Toast.LENGTH_SHORT).show();
                         }
                     });
+
         });
 
         registerLink.setOnClickListener(v -> {
@@ -115,7 +117,7 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    private void navigateToRoleActivity(String role, String name) {
+    private void navigateToRoleActivity(String role, String name, String userId) {
         Intent intent = null;
 
         switch (role) {
@@ -136,9 +138,7 @@ public class LoginActivity extends AppCompatActivity {
         if (intent != null) {
             intent.putExtra("USER_NAME", name);
             intent.putExtra("USER_ROLE", role);
-
-            editor.putString("USER_ROLE", role);
-            editor.apply();
+            intent.putExtra("USER_ID", userId);
 
             startActivity(intent);
             finish();

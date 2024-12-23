@@ -25,6 +25,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -54,17 +55,35 @@ public class DonorMainActivity extends BaseActivity {
 
 
         notificationButton.setOnClickListener(v -> {
+            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+            String userId = sharedPreferences.getString("USER_ID", null);
+
+            if (userId == null) {
+                Toast.makeText(this, "User ID is missing!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             Intent intent = new Intent(DonorMainActivity.this, NotificationActivity.class);
+            intent.putExtra("USER_ID", userId);
             intent.putExtra("RECEIVER_IDS", new String[]{"all"});
             intent.putExtra("USER_ROLE", "donor");
             startActivity(intent);
         });
 
+
     }
 
     private void checkForUnreadNotifications(ImageView notificationButton) {
+        String userId = getIntent().getStringExtra("USER_ID");
+        if (userId == null) {
+            Log.e(TAG, "User ID is null. Ensure it is passed in the intent.");
+            return;
+        }
+
+        List<String> validReceiverIds = new ArrayList<>(Arrays.asList("all", userId));
+
         db.collection("Notifications")
-                .whereEqualTo("receiverId", "all")
+                .whereIn("receiverId", validReceiverIds)
                 .whereEqualTo("status", "unread")
                 .addSnapshotListener((querySnapshot, e) -> {
                     if (e != null) {
@@ -79,6 +98,7 @@ public class DonorMainActivity extends BaseActivity {
                     }
                 });
     }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -97,7 +117,6 @@ public class DonorMainActivity extends BaseActivity {
 
 
     private void initializeViews() {
-        // Get intent
         TextView welcomeUser = findViewById(R.id.welcomeUser);
         profileImage = findViewById(R.id.profileImage);
         campaignList = findViewById(R.id.campaignList);
