@@ -54,20 +54,45 @@ public class DonorListActivity extends BaseActivity {
     }
 
     private void fetchDonationSites() {
-        db.collection("DonationSites").get()
-                .addOnSuccessListener(querySnapshot -> {
-                    donationSites.clear();
-                    donationSites.addAll(querySnapshot.getDocuments());
-                    displayDonationSites(donationSites);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error fetching donation sites", e);
-                    Toast.makeText(this, "Error fetching sites", Toast.LENGTH_SHORT).show();
-                });
+        String userRole = getSharedPreferences("LoginPrefs", MODE_PRIVATE).getString("USER_ROLE", "donor");
+        String userEmail = getSharedPreferences("LoginPrefs", MODE_PRIVATE).getString("USER_EMAIL", "");
+
+        if ("admin".equals(userRole)) {
+            // Admin role - fetch all campaigns
+            db.collection("DonationSites").get().addOnSuccessListener(querySnapshot -> {
+                donationSites.clear();
+                donationSites.addAll(querySnapshot.getDocuments());
+                displayDonationSites(donationSites, userRole);
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "Error fetching donation sites", e);
+                Toast.makeText(this, "Error fetching sites", Toast.LENGTH_SHORT).show();
+            });
+        } else if ("manager".equals(userRole)) {
+            // Manager role fetch only the campaigns they assigned to
+            db.collection("DonationSites").whereArrayContains("managerEmail", userEmail).get().addOnSuccessListener(querySnapshot -> {
+                donationSites.clear();
+                donationSites.addAll(querySnapshot.getDocuments());
+                displayDonationSites(donationSites, userRole);
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "Error fetching assigned donation sites", e);
+                Toast.makeText(this, "Error fetching sites", Toast.LENGTH_SHORT).show();
+            });
+        }
     }
 
-    private void displayDonationSites(List<DocumentSnapshot> sites) {
+    private void displayDonationSites(List<DocumentSnapshot> sites, String userRole) {
         siteListLayout.removeAllViews();
+
+        if (sites.isEmpty()) {
+            // Display a message based on the users' role
+            TextView noSitesMessage = new TextView(this);
+            noSitesMessage.setText("admin".equals(userRole) ? "No campaigns available!" : "You are not assigned to any campaigns.");
+            noSitesMessage.setTextSize(16);
+            noSitesMessage.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+            siteListLayout.addView(noSitesMessage);
+            return;
+        }
+
         for (DocumentSnapshot site : sites) {
             String siteName = site.getString("shortName");
             String siteAddress = site.getString("address");
@@ -95,13 +120,14 @@ public class DonorListActivity extends BaseActivity {
         Intent intent = new Intent(this, DonorDetailActivity.class);
         intent.putExtra("SITE_ID", siteId);
         intent.putExtra("SITE_NAME", siteName);
+
         startActivity(intent);
     }
 
 
     private void filterSites(String query) {
         if (query.isEmpty()) {
-            displayDonationSites(donationSites);
+            displayDonationSites(donationSites, getSharedPreferences("LoginPrefs", MODE_PRIVATE).getString("USER_ROLE", "donor"));
             return;
         }
 
@@ -111,6 +137,6 @@ public class DonorListActivity extends BaseActivity {
                 filtered.add(site);
             }
         }
-        displayDonationSites(filtered);
+        displayDonationSites(filtered, getSharedPreferences("LoginPrefs", MODE_PRIVATE).getString("USER_ROLE", "donor"));
     }
 }

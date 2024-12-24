@@ -20,14 +20,6 @@ public class SiteAdapter extends RecyclerView.Adapter<SiteAdapter.SiteViewHolder
     private List<DocumentSnapshot> siteList;
     private OnSiteSelectedListener listener;
 
-    // Default constructor (Test)
-    public SiteAdapter() {
-        this.siteList = new ArrayList<>();
-        this.listener = site -> {
-            // Default listener (test)
-        };
-    }
-
     public SiteAdapter(List<DocumentSnapshot> siteList, OnSiteSelectedListener listener) {
         this.siteList = siteList;
         this.listener = listener;
@@ -36,8 +28,7 @@ public class SiteAdapter extends RecyclerView.Adapter<SiteAdapter.SiteViewHolder
     @NonNull
     @Override
     public SiteViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.site_item, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.site_item, parent, false);
         return new SiteViewHolder(view);
     }
 
@@ -73,9 +64,7 @@ public class SiteAdapter extends RecyclerView.Adapter<SiteAdapter.SiteViewHolder
 
             siteName.setText(shortName != null ? shortName : "Unknown Site");
             siteAddress.setText(address != null ? address : "No Address Available");
-            bloodDetails.setText(requiredBloodTypes != null
-                    ? "Required Blood: " + String.join(", ", requiredBloodTypes)
-                    : "No Blood Requirements");
+            bloodDetails.setText(requiredBloodTypes != null ? "Required Blood: " + String.join(", ", requiredBloodTypes) : "No Blood Requirements");
 
             siteContainer.setOnClickListener(v -> listener.onSiteSelected(site));
         }

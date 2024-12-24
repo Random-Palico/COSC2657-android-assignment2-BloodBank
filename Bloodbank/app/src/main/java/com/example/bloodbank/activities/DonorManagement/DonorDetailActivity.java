@@ -1,5 +1,6 @@
 package com.example.bloodbank.activities.DonorManagement;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -38,9 +39,8 @@ public class DonorDetailActivity extends BaseActivity {
         siteId = getIntent().getStringExtra("SITE_ID");
         String siteName = getIntent().getStringExtra("SITE_NAME");
 
-
         TextView pageTitle = findViewById(R.id.pageTitle);
-        pageTitle.setText(siteName);
+        pageTitle.setText("Donor List in " + siteName);
 
         db = FirebaseFirestore.getInstance();
         donors = new ArrayList<>();
@@ -63,18 +63,14 @@ public class DonorDetailActivity extends BaseActivity {
     }
 
     private void fetchDonors() {
-        db.collection("Donors")
-                .whereEqualTo("campaignId", siteId)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    donors.clear();
-                    donors.addAll(querySnapshot.getDocuments());
-                    displayDonors(donors);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error fetching donors", e);
-                    Toast.makeText(this, "Error fetching donors", Toast.LENGTH_SHORT).show();
-                });
+        db.collection("Donors").whereEqualTo("campaignId", siteId).get().addOnSuccessListener(querySnapshot -> {
+            donors.clear();
+            donors.addAll(querySnapshot.getDocuments());
+            displayDonors(donors);
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error fetching donors", e);
+            Toast.makeText(this, "Error fetching donors", Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void displayDonors(List<DocumentSnapshot> donors) {
@@ -107,7 +103,37 @@ public class DonorDetailActivity extends BaseActivity {
                 donorProfileImage.setImageResource(R.drawable.ic_placeholder);
             }
 
+            donorCard.setOnClickListener(v -> openDonorInfo(donor));
+
             donorListLayout.addView(donorCard);
+        }
+    }
+
+    private void openDonorInfo(DocumentSnapshot donor) {
+        String userId = donor.getString("userId");
+        if (userId != null && !userId.isEmpty()) {
+            db.collection("Users").document(userId).get().addOnSuccessListener(userSnapshot -> {
+                if (userSnapshot.exists()) {
+                    String email = userSnapshot.getString("email");
+                    Intent intent = new Intent(this, DonorInfoActivity.class);
+                    intent.putExtra("name", donor.getString("name"));
+                    intent.putExtra("email", email != null ? email : "N/A");
+                    intent.putExtra("bloodType", donor.getString("bloodType"));
+                    intent.putExtra("bloodUnit", donor.getLong("bloodUnit") != null ? donor.getLong("bloodUnit").toString() : "N/A");
+                    intent.putExtra("dob", donor.getString("dob"));
+                    intent.putExtra("location", donor.getString("location"));
+                    intent.putExtra("userId", donor.getString("userId"));
+                    intent.putExtra("profileImage", donor.getString("profileImage"));
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(this, "User data not found", Toast.LENGTH_SHORT).show();
+                }
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "Failed to fetch user data", e);
+                Toast.makeText(this, "Failed to fetch user data", Toast.LENGTH_SHORT).show();
+            });
+        } else {
+            Toast.makeText(this, "User ID not found", Toast.LENGTH_SHORT).show();
         }
     }
 

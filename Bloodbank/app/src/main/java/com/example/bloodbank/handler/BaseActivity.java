@@ -93,5 +93,4 @@ public class BaseActivity extends AppCompatActivity {
         overridePendingTransition(0, 0);
         finish();
     }
-
 }
