@@ -66,7 +66,7 @@ public class DonorMainActivity extends BaseActivity {
 
             Intent intent = new Intent(DonorMainActivity.this, NotificationActivity.class);
             intent.putExtra("USER_ID", userId);
-            intent.putExtra("RECEIVER_IDS", new String[]{"all"});
+            intent.putExtra("RECEIVER_IDS", new String[]{"all", userId});
             intent.putExtra("USER_ROLE", "donor");
             startActivity(intent);
         });

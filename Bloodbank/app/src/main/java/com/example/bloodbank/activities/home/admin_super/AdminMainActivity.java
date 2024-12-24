@@ -70,16 +70,14 @@ public class AdminMainActivity extends BaseActivity {
         checkForUnreadNotifications(notificationButton);
 
 
-        final String EXTRA_RECEIVER_IDS = "RECEIVER_IDS";
-        final String EXTRA_USER_ROLE = "USER_ROLE";
-
         notificationButton.setOnClickListener(v -> {
             Intent intent = new Intent(AdminMainActivity.this, NotificationActivity.class);
-            intent.putExtra("RECEIVER_IDS", new String[]{"all", "admin", "adminManager"});
+            intent.putExtra("RECEIVER_IDS", new String[]{"all", "admin", "adminManager", currentUserId});
             intent.putExtra("USER_ID", currentUserId);
             intent.putExtra("USER_ROLE", currentUserRole);
             startActivity(intent);
         });
+
 
         TextView welcomeUser = findViewById(R.id.welcomeUser);
         String userName = sharedPreferences.getString("USER_NAME", "Admin");
@@ -143,38 +141,37 @@ public class AdminMainActivity extends BaseActivity {
         }
     }
 
-
     private void checkForUnreadNotifications(ImageView notificationButton) {
-        String userId = getIntent().getStringExtra("USER_ID");
-        String userRole = getIntent().getStringExtra("USER_ROLE");
-
-        if (userId == null || userRole == null) {
-            Log.e(TAG, "User ID or Role is null. Ensure it is passed in the intent.");
-            return;
-        }
-
-        // Include user-specific, "all", and role-specific IDs in the query
-        List<String> validReceiverIds = new ArrayList<>(Arrays.asList("all", userId));
-        if ("admin".equalsIgnoreCase(userRole)) {
-            validReceiverIds.add("admin");
-        } else if ("adminManager".equalsIgnoreCase(userRole)) {
-            validReceiverIds.add("adminManager");
-        }
+        List<String> validReceiverIds = Arrays.asList("all", "adminManager", "admin");
 
         db.collection("Notifications")
                 .whereIn("receiverId", validReceiverIds)
                 .whereEqualTo("status", "unread")
-                .addSnapshotListener((querySnapshot, e) -> {
-                    if (e != null) {
-                        Log.e(TAG, "Failed to listen for notifications: " + e.getMessage());
+                .addSnapshotListener((notificationsSnapshot, notificationError) -> {
+                    if (notificationError != null) {
+                        Log.e(TAG, "Failed to listen for notifications: " + notificationError.getMessage());
                         return;
                     }
 
-                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
-                        notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
-                    } else {
-                        notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
-                    }
+                    boolean hasUnreadNotifications = notificationsSnapshot != null && !notificationsSnapshot.isEmpty();
+
+                    db.collection("RoleRequests")
+                            .whereEqualTo("status", "pending")
+                            .addSnapshotListener((roleRequestsSnapshot, roleRequestError) -> {
+                                if (roleRequestError != null) {
+                                    Log.e(TAG, "Failed to listen for role requests: " + roleRequestError.getMessage());
+                                    return;
+                                }
+
+                                boolean hasPendingRequests = roleRequestsSnapshot != null && !roleRequestsSnapshot.isEmpty();
+
+                                // Update notification icon color
+                                if (hasUnreadNotifications || hasPendingRequests) {
+                                    notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
+                                } else {
+                                    notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
+                                }
+                            });
                 });
     }
 

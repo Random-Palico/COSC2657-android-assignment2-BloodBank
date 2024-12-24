@@ -65,7 +65,7 @@ public class ManagerMainActivity extends BaseActivity {
 
             Intent intent = new Intent(ManagerMainActivity.this, NotificationActivity.class);
             intent.putExtra("USER_ID", userId);
-            intent.putExtra("RECEIVER_IDS", new String[]{"all", "adminManager"});
+            intent.putExtra("RECEIVER_IDS", new String[]{"all", "adminManager", userId});
             intent.putExtra("USER_ROLE", "manager");
             startActivity(intent);
         });

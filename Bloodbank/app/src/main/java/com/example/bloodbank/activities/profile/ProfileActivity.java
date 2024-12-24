@@ -2,6 +2,7 @@ package com.example.bloodbank.activities.profile;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -198,15 +199,43 @@ public class ProfileActivity extends BaseActivity {
             roleRequest.put("status", "pending");
             roleRequest.put("submittedAt", System.currentTimeMillis());
 
-            db.collection("RoleRequests").add(roleRequest).addOnSuccessListener(documentReference -> {
-                Toast.makeText(this, "Request sent to admin!", Toast.LENGTH_SHORT).show();
-            }).addOnFailureListener(e -> {
-                Toast.makeText(this, "Failed to send request: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                requestManagerButton.setEnabled(true);
-                requestManagerButton.setText("Request to be a Site Manager");
-            });
+            db.collection("RoleRequests")
+                    .add(roleRequest)
+                    .addOnSuccessListener(documentReference -> {
+                        Toast.makeText(this, "Request sent to admin!", Toast.LENGTH_SHORT).show();
+
+                        sendNotificationToAdmin(userId);
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to send request: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        requestManagerButton.setEnabled(true);
+                        requestManagerButton.setText("Request to be a Site Manager");
+                    });
         });
     }
+
+    private void sendNotificationToAdmin(String userId) {
+        db.collection("Users").document(userId).get().addOnSuccessListener(userSnapshot -> {
+            if (userSnapshot.exists()) {
+                String userName = userSnapshot.getString("name");
+
+                Map<String, Object> notification = new HashMap<>();
+                notification.put("receiverId", "admin");
+                notification.put("type", "roleRequest");
+                notification.put("message", userName + " has requested to be a Site Manager.");
+                notification.put("timestamp", System.currentTimeMillis());
+                notification.put("status", "unread");
+
+                db.collection("Notifications")
+                        .add(notification)
+                        .addOnSuccessListener(docRef -> Log.d("ProfileActivity", "Notification sent to admin successfully."))
+                        .addOnFailureListener(e -> Log.e("ProfileActivity", "Failed to send notification to admin: " + e.getMessage()));
+            } else {
+                Log.e("ProfileActivity", "User data not found for notification.");
+            }
+        }).addOnFailureListener(e -> Log.e("ProfileActivity", "Failed to fetch user data for notification: " + e.getMessage()));
+    }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {

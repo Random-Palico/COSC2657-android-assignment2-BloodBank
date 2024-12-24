@@ -104,22 +104,15 @@ public class NotificationActivity extends AppCompatActivity {
             return;
         }
 
-        // Retrieve the user ID and role from SharedPreferences or Intent
-        String userId = getIntent().getStringExtra("USER_ID");
-        String userRole = getIntent().getStringExtra("USER_ROLE");
-
-        if (userId == null || userRole == null) {
-            Log.e(TAG, "User ID or Role is null. Ensure it is passed in the intent.");
+        String[] receiverIdsFromIntent = getIntent().getStringArrayExtra("RECEIVER_IDS");
+        if (receiverIdsFromIntent == null || receiverIdsFromIntent.length == 0) {
+            Log.e(TAG, "RECEIVER_IDS is null or empty. Ensure it is passed in the intent.");
             showNoNotificationsMessage();
             return;
         }
 
-        List<String> validReceiverIds = new ArrayList<>(Arrays.asList("all", userId));
-        if ("admin".equalsIgnoreCase(userRole)) {
-            validReceiverIds.add("admin");
-        } else if ("adminManager".equalsIgnoreCase(userRole)) {
-            validReceiverIds.add("adminManager");
-        }
+        List<String> validReceiverIds = Arrays.asList(receiverIdsFromIntent);
+        Log.d(TAG, "Valid receiver IDs: " + validReceiverIds);
 
         db.collection("Notifications")
                 .whereIn("receiverId", validReceiverIds)
@@ -127,15 +120,20 @@ public class NotificationActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     if (querySnapshot == null || querySnapshot.isEmpty()) {
+                        Log.d(TAG, "No notifications found for receiver IDs: " + validReceiverIds);
                         showNoNotificationsMessage();
                         return;
                     }
 
                     notificationContainer.setVisibility(View.VISIBLE);
                     noNotificationsText.setVisibility(View.GONE);
+                    Log.d(TAG, "Fetched " + querySnapshot.size() + " notifications");
 
                     for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
                         Map<String, Object> notification = doc.getData();
+                        if (notification == null) continue;
+
+                        Log.d(TAG, "Notification data: " + notification);
                         String status = (String) notification.get("status");
 
                         if ("unread".equals(status)) {
@@ -143,6 +141,10 @@ public class NotificationActivity extends AppCompatActivity {
                         }
 
                         addNotificationCard(notification, filter, status);
+                    }
+
+                    if (!unreadNotificationIds.isEmpty()) {
+                        markNotificationsAsRead();
                     }
 
                     if (notificationContainer.getChildCount() == 0) {
@@ -154,6 +156,7 @@ public class NotificationActivity extends AppCompatActivity {
                     showNoNotificationsMessage();
                 });
     }
+
 
     private void loadPendingRequests() {
         if (!"admin".equalsIgnoreCase(userRole)) {
@@ -305,15 +308,14 @@ public class NotificationActivity extends AppCompatActivity {
     }
 
     private void markNotificationsAsRead() {
-        db.runTransaction(transaction -> {
-                    for (String notificationId : unreadNotificationIds) {
-                        DocumentSnapshot snapshot = transaction.get(db.collection("Notifications").document(notificationId));
-                        if ("unread".equals(snapshot.getString("status"))) {
-                            transaction.update(snapshot.getReference(), "status", "read");
-                        }
-                    }
-                    return null;
-                }).addOnSuccessListener(aVoid -> Log.d(TAG, "Notifications marked as read."))
-                .addOnFailureListener(e -> Log.e(TAG, "Error marking notifications as read: ", e));
+        if (unreadNotificationIds.isEmpty()) return;
+
+        for (String notificationId : unreadNotificationIds) {
+            db.collection("Notifications").document(notificationId)
+                    .update("status", "read")
+                    .addOnSuccessListener(aVoid -> Log.d(TAG, "Notification marked as read: " + notificationId))
+                    .addOnFailureListener(e -> Log.e(TAG, "Failed to mark notification as read: " + notificationId, e));
+        }
+        unreadNotificationIds.clear();
     }
 }
