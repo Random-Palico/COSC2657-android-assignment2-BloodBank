@@ -20,7 +20,9 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.bloodbank.R;
 import com.example.bloodbank.activities.CampaignDetailActivity;
+import com.example.bloodbank.activities.DonorRegisterActivity;
 import com.example.bloodbank.activities.NotificationActivity;
+import com.example.bloodbank.activities.add_edit_campaign.EditCampaignActivity;
 import com.example.bloodbank.handler.BaseActivity;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -234,49 +236,160 @@ public class ManagerMainActivity extends BaseActivity {
         campaignLocation.setText(location);
 
         Glide.with(this).load(eventImg).into(campaignImage);
+        String address = document.getString("address");
 
+        // Register button
         registerButton.setVisibility(View.VISIBLE);
         registerButton.setOnClickListener(v -> {
-            Intent intent = new Intent(this, CampaignDetailActivity.class);
+            Intent intent = new Intent(this, DonorRegisterActivity.class);
             intent.putExtra("campaignId", document.getId());
+            intent.putExtra("campaignTitle", title);
+            intent.putExtra("campaignDate", date);
+            intent.putExtra("campaignLocation", location);
+            intent.putExtra("campaignAddress", address);
+            intent.putExtra("campaignImage", eventImg);
+
+            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+            String userName = sharedPreferences.getString("USER_NAME", "");
+            String userBloodType = sharedPreferences.getString("USER_BLOOD_TYPE", "");
+            String userLocation = sharedPreferences.getString("USER_LOCATION", "");
+
+            intent.putExtra("userName", userName);
+            intent.putExtra("userBloodType", userBloodType);
+            intent.putExtra("userLocation", userLocation);
+
             startActivity(intent);
         });
 
         editButton.setVisibility(View.VISIBLE);
+        editButton.setText("Edit");
+
         editButton.setOnClickListener(v -> {
-            Intent intent = new Intent(this, CampaignDetailActivity.class);
+            Intent intent = new Intent(this, EditCampaignActivity.class);
             intent.putExtra("campaignId", document.getId());
-            startActivity(intent);
+            intent.putExtra("campaignTitle", title);
+            intent.putExtra("campaignDescription", document.getString("description"));
+            intent.putExtra("campaignDate", document.getString("eventDate"));
+            intent.putExtra("campaignImage", eventImg);
+            intent.putExtra("campaignLocation", location);
+            intent.putExtra("campaignAddress", address);
+
+            Map<String, Object> locationLatLng = (Map<String, Object>) document.get("locationLatLng");
+            if (locationLatLng != null) {
+                double lat = (double) locationLatLng.get("lat");
+                double lng = (double) locationLatLng.get("lng");
+                intent.putExtra("latitude", lat);
+                intent.putExtra("longitude", lng);
+            }
+
+            ArrayList<String> bloodTypes = (ArrayList<String>) document.get("requiredBloodTypes");
+            intent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
+
+            startActivityForResult(intent, 200);
         });
 
-        assignButton.setVisibility(View.VISIBLE);
-        assignButton.setOnClickListener(v -> showAssignConfirmation(document));
+        // Fetch manager data
+        Object managerNamesObj = document.get("managerName");
+        Object managerEmailsObj = document.get("managerEmail");
 
+        List<String> managerNames = managerNamesObj instanceof List ? (List<String>) managerNamesObj : new ArrayList<>();
+        List<String> managerEmails = managerEmailsObj instanceof List ? (List<String>) managerEmailsObj : new ArrayList<>();
+
+        SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+        String currentManagerEmail = sharedPreferences.getString("USER_EMAIL", "");
+        String currentManagerName = sharedPreferences.getString("USER_NAME", "Manager");
+
+        boolean isManagerAssigned = managerEmails.contains(currentManagerEmail);
+
+        // Update button text
+        assignButton.setText(isManagerAssigned ? "Unassign" : "Assign");
+
+        assignButton.setVisibility(View.VISIBLE);
+        assignButton.setOnClickListener(v -> {
+            if (isManagerAssigned) {
+                showUnassignConfirmation(document, new ArrayList<>(managerNames), new ArrayList<>(managerEmails), currentManagerEmail, currentManagerName);
+            } else if (managerEmails.size() < 2) {
+                showAssignConfirmation(document, new ArrayList<>(managerNames), new ArrayList<>(managerEmails), currentManagerEmail, currentManagerName);
+            } else {
+                Toast.makeText(this, "Maximum of 2 managers allowed for this campaign!", Toast.LENGTH_SHORT).show();
+            }
+        });
+        cardView.setOnClickListener(v -> {
+            Intent intent = new Intent(this, CampaignDetailActivity.class);
+            intent.putExtra("campaignId", document.getId());
+            intent.putExtra("campaignTitle", title);
+            intent.putExtra("campaignDescription", document.getString("description"));
+            intent.putExtra("campaignDate", document.getString("eventDate"));
+            intent.putExtra("campaignImage", eventImg);
+            intent.putExtra("campaignLocation", location);
+            intent.putExtra("campaignAddress", address);
+
+            Map<String, Object> locationLatLng = (Map<String, Object>) document.get("locationLatLng");
+            if (locationLatLng != null) {
+                double lat = (double) locationLatLng.get("lat");
+                double lng = (double) locationLatLng.get("lng");
+                intent.putExtra("latitude", lat);
+                intent.putExtra("longitude", lng);
+            }
+
+            ArrayList<String> bloodTypes = (ArrayList<String>) document.get("requiredBloodTypes");
+            intent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
+
+            String role = sharedPreferences.getString("USER_ROLE", "donor");
+            intent.putExtra("USER_ROLE", role);
+
+            startActivity(intent);
+        });
         campaignList.addView(cardView);
     }
 
-    private void showAssignConfirmation(DocumentSnapshot document) {
-        new AlertDialog.Builder(this)
-                .setTitle("Assign Task")
-                .setMessage("Are you sure you want to assign this task?")
-                .setPositiveButton("Yes", (dialog, which) -> assignManagerToCampaign(document))
+    private void showAssignConfirmation(DocumentSnapshot document, List<String> managerNames, List<String> managerEmails, String managerEmail, String managerName) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Assign Task")
+                .setMessage("Are you sure you want to assign yourself to this campaign?")
+                .setPositiveButton("Yes", (dialog, which) -> assignManagerToCampaign(document, managerNames, managerEmails, managerEmail, managerName))
                 .setNegativeButton("No", null)
                 .show();
     }
 
-    private void assignManagerToCampaign(DocumentSnapshot document) {
-        SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-        String managerName = sharedPreferences.getString("USER_NAME", "Manager");
-        String managerEmail = sharedPreferences.getString("USER_EMAIL", "");
-
-        Map<String, Object> updateData = Map.of(
-                "managerName", managerName,
-                "managerEmail", managerEmail
-        );
+    private void assignManagerToCampaign(DocumentSnapshot document, List<String> managerNames, List<String> managerEmails, String managerEmail, String managerName) {
+        managerNames.add(managerName);
+        managerEmails.add(managerEmail);
 
         db.collection("DonationSites").document(document.getId())
-                .update(updateData)
-                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Task assigned successfully!", Toast.LENGTH_SHORT).show())
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to assign task.", Toast.LENGTH_SHORT).show());
+                .update("managerName", managerNames, "managerEmail", managerEmails)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Assigned successfully!", Toast.LENGTH_SHORT).show();
+                    fetchCampaigns(); // Refresh the list
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to assign: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Error assigning manager", e);
+                });
+    }
+
+    private void showUnassignConfirmation(DocumentSnapshot document, List<String> managerNames, List<String> managerEmails, String managerEmail, String managerName) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Unassign Task")
+                .setMessage("Are you sure you want to unassign yourself from this campaign?")
+                .setPositiveButton("Yes", (dialog, which) -> unassignManagerFromCampaign(document, managerNames, managerEmails, managerEmail, managerName))
+                .setNegativeButton("No", null)
+                .show();
+    }
+
+    private void unassignManagerFromCampaign(DocumentSnapshot document, List<String> managerNames, List<String> managerEmails, String managerEmail, String managerName) {
+        managerNames.remove(managerName);
+        managerEmails.remove(managerEmail);
+
+        db.collection("DonationSites").document(document.getId())
+                .update("managerName", managerNames, "managerEmail", managerEmails)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Unassigned successfully!", Toast.LENGTH_SHORT).show();
+                    fetchCampaigns();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to unassign: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Error unassigning manager", e);
+                });
     }
 }

@@ -87,11 +87,15 @@ public class CampaignDetailActivity extends AppCompatActivity implements OnMapRe
         if ("admin".equals(userRole)) {
             editButton.setVisibility(View.VISIBLE);
             registerButton.setVisibility(View.GONE);
+        } else if ("manager".equals(userRole)) {
+            editButton.setVisibility(View.VISIBLE);
+            registerButton.setVisibility(View.VISIBLE);
         } else {
             editButton.setVisibility(View.GONE);
             registerButton.setVisibility(View.VISIBLE);
         }
 
+        // Edit button
         editButton.setOnClickListener(v -> {
             Intent editIntent = new Intent(this, EditCampaignActivity.class);
             editIntent.putExtra("campaignId", campaignId);
@@ -105,7 +109,24 @@ public class CampaignDetailActivity extends AppCompatActivity implements OnMapRe
             editIntent.putExtra("longitude", campaignLatLng.longitude);
             editIntent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
 
-            startActivityForResult(editIntent, 300);
+            startActivity(editIntent);
+        });
+
+        // Register button
+        registerButton.setOnClickListener(v -> {
+            Intent registerIntent = new Intent(this, DonorRegisterActivity.class);
+            registerIntent.putExtra("campaignId", campaignId);
+            registerIntent.putExtra("campaignTitle", title);
+            registerIntent.putExtra("campaignDescription", description);
+            registerIntent.putExtra("campaignDate", date);
+            registerIntent.putExtra("campaignImage", imageUrl);
+            registerIntent.putExtra("campaignLocation", location);
+            registerIntent.putExtra("campaignAddress", address);
+            registerIntent.putExtra("latitude", campaignLatLng.latitude);
+            registerIntent.putExtra("longitude", campaignLatLng.longitude);
+            registerIntent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
+
+            startActivity(registerIntent);
         });
     }
 

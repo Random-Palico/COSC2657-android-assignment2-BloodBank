@@ -180,7 +180,7 @@ public class DonorRegisterActivity extends AppCompatActivity {
     }
 
     private void validateAndRegisterDonor() {
-        int bloodUnits = bloodUnitSlider.getProgress();
+        int bloodUnits = bloodUnitSlider.getProgress() * 100;
         if (bloodUnits <= 0) {
             Toast.makeText(this, "Please select a valid blood unit!", Toast.LENGTH_SHORT).show();
             return;

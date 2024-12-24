@@ -62,7 +62,7 @@ public class BaseActivity extends AppCompatActivity {
                 }
                 return true;
             } else if (itemId == R.id.nav_donor_list) {
-                if ("admin".equals(userRole) && !(this instanceof DonorListActivity)) {
+                if (("admin".equals(userRole) || "manager".equals(userRole)) && !(this instanceof DonorListActivity)) {
                     navigateToActivity(DonorListActivity.class);
                 }
                 return true;
