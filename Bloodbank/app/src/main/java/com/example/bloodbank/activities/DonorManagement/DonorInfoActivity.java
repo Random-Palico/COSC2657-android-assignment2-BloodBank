@@ -1,6 +1,7 @@
 package com.example.bloodbank.activities.DonorManagement;
 
 import android.os.Bundle;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -24,6 +25,9 @@ public class DonorInfoActivity extends AppCompatActivity {
         TextView dob = findViewById(R.id.dob);
         TextView location = findViewById(R.id.location);
         TextView userId = findViewById(R.id.userId);
+        ImageButton backButton = findViewById(R.id.backButton);
+
+        backButton.setOnClickListener(v -> finish());
 
         String donorName = getIntent().getStringExtra("name");
         String donorEmail = getIntent().getStringExtra("email");

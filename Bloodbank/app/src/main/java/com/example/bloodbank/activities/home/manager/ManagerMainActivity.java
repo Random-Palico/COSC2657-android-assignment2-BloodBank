@@ -22,6 +22,7 @@ import com.example.bloodbank.R;
 import com.example.bloodbank.activities.CampaignDetailActivity;
 import com.example.bloodbank.activities.DonorRegisterActivity;
 import com.example.bloodbank.activities.NotificationActivity;
+import com.example.bloodbank.activities.add_edit_campaign.AddCampaignActivity;
 import com.example.bloodbank.activities.add_edit_campaign.EditCampaignActivity;
 import com.example.bloodbank.handler.BaseActivity;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -53,7 +54,6 @@ public class ManagerMainActivity extends BaseActivity {
         fetchCampaigns();
 
         ImageView notificationButton = findViewById(R.id.notificationButton);
-        checkForUnreadNotifications(notificationButton);
 
         notificationButton.setOnClickListener(v -> {
             SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
@@ -70,6 +70,46 @@ public class ManagerMainActivity extends BaseActivity {
             intent.putExtra("USER_ROLE", "manager");
             startActivity(intent);
         });
+
+        Button addCampaignButton = findViewById(R.id.addCampaignButton);
+        addCampaignButton.setOnClickListener(v -> {
+            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+            String currentUserRole = sharedPreferences.getString("USER_ROLE", "manager");
+
+            if (!"manager".equals(currentUserRole)) {
+                Toast.makeText(this, "You don't have permission to add campaigns!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Intent intent = new Intent(this, AddCampaignActivity.class);
+            startActivityForResult(intent, 100);
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        fetchProfileImage();
+        fetchCampaigns();
+        checkForUnreadNotifications();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode == RESULT_OK) {
+            if (requestCode == 100) {
+                SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+                String userName = sharedPreferences.getString("USER_NAME", "Admin");
+                TextView welcomeUser = findViewById(R.id.welcomeUser);
+                welcomeUser.setText("Hi " + userName);
+                fetchProfileImage();
+            } else if (requestCode == 200 || requestCode == 300) {
+                fetchCampaigns();
+                Toast.makeText(this, "Campaign updated successfully!", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private void initializeViews() {
@@ -101,8 +141,12 @@ public class ManagerMainActivity extends BaseActivity {
         });
     }
 
-    private void checkForUnreadNotifications(ImageView notificationButton) {
-        String userId = getIntent().getStringExtra("USER_ID");
+    private void checkForUnreadNotifications() {
+        ImageView notificationButton = findViewById(R.id.notificationButton);
+
+        SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+        String userId = sharedPreferences.getString("USER_ID", null);
+
         if (userId == null) {
             Log.e(TAG, "User ID is null. Ensure it is passed in the intent.");
             return;
@@ -239,7 +283,6 @@ public class ManagerMainActivity extends BaseActivity {
         Glide.with(this).load(eventImg).into(campaignImage);
         String address = document.getString("address");
 
-        // Register button
         registerButton.setVisibility(View.VISIBLE);
         registerButton.setOnClickListener(v -> {
             Intent intent = new Intent(this, DonorRegisterActivity.class);
@@ -289,7 +332,6 @@ public class ManagerMainActivity extends BaseActivity {
             startActivityForResult(intent, 200);
         });
 
-        // Fetch manager data
         Object managerNamesObj = document.get("managerName");
         Object managerEmailsObj = document.get("managerEmail");
 
@@ -302,7 +344,7 @@ public class ManagerMainActivity extends BaseActivity {
 
         boolean isManagerAssigned = managerEmails.contains(currentManagerEmail);
 
-        // Update button text
+        // Update text of button
         assignButton.setText(isManagerAssigned ? "Unassign" : "Assign");
 
         assignButton.setVisibility(View.VISIBLE);
@@ -355,7 +397,7 @@ public class ManagerMainActivity extends BaseActivity {
 
         db.collection("DonationSites").document(document.getId()).update("managerName", managerNames, "managerEmail", managerEmails).addOnSuccessListener(aVoid -> {
             Toast.makeText(this, "Assigned successfully!", Toast.LENGTH_SHORT).show();
-            fetchCampaigns(); // Refresh the list
+            fetchCampaigns();
         }).addOnFailureListener(e -> {
             Toast.makeText(this, "Failed to assign: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             Log.e(TAG, "Error assigning manager", e);

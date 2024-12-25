@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -32,6 +33,7 @@ public class DonorRegisterActivity extends AppCompatActivity {
     private SeekBar bloodUnitSlider;
     private TextView bloodUnitValue;
     private Button confirmButton, dobPickerButton;
+    private ImageButton backButton;
 
     private String profileImageUrl;
 
@@ -48,10 +50,14 @@ public class DonorRegisterActivity extends AppCompatActivity {
         setupDatePicker();
         loadUserProfile();
 
+
+        backButton.setOnClickListener(v -> finish());
         confirmButton.setOnClickListener(v -> validateAndRegisterDonor());
     }
 
     private void initializeViews() {
+        backButton = findViewById(R.id.backButton);
+
         nameField = findViewById(R.id.editNameField);
         dobField = findViewById(R.id.editDobField);
         locationSpinner = findViewById(R.id.editLocationSpinner);
@@ -79,9 +85,7 @@ public class DonorRegisterActivity extends AppCompatActivity {
 
     private void setupSpinners() {
         String[] countries = Locale.getISOCountries();
-        String[] countryNames = Arrays.stream(countries)
-                .map(code -> new Locale("", code).getDisplayCountry())
-                .toArray(String[]::new);
+        String[] countryNames = Arrays.stream(countries).map(code -> new Locale("", code).getDisplayCountry()).toArray(String[]::new);
 
         ArrayAdapter<String> locationAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, countryNames);
         locationAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -216,31 +220,28 @@ public class DonorRegisterActivity extends AppCompatActivity {
     private void createNotification(String campaignId, String userId) {
         String userName = nameField.getText().toString().trim();
 
-        db.collection("DonationSites").document(campaignId).get()
-                .addOnSuccessListener(snapshot -> {
-                    if (snapshot.exists()) {
-                        String siteName = snapshot.getString("siteName");
-                        String shortName = snapshot.getString("shortName");
+        db.collection("DonationSites").document(campaignId).get().addOnSuccessListener(snapshot -> {
+            if (snapshot.exists()) {
+                String siteName = snapshot.getString("siteName");
+                String shortName = snapshot.getString("shortName");
 
-                        String message = userName + " registered at campaign " + siteName + " at " + shortName;
+                String message = userName + " registered at campaign " + siteName + " at " + shortName;
 
-                        // Create notification
-                        Map<String, Object> notification = new HashMap<>();
-                        notification.put("receiverId", "adminManager");
-                        notification.put("type", "register");
-                        notification.put("message", message);
-                        notification.put("timestamp", System.currentTimeMillis());
-                        notification.put("status", "unread");
-                        notification.put("userId", userId);
-                        notification.put("campaignId", campaignId);
+                // Create notification
+                Map<String, Object> notification = new HashMap<>();
+                notification.put("receiverId", "adminManager");
+                notification.put("type", "register");
+                notification.put("message", message);
+                notification.put("timestamp", System.currentTimeMillis());
+                notification.put("status", "unread");
+                notification.put("userId", userId);
+                notification.put("campaignId", campaignId);
 
-                        // Add the notification to Firestore
-                        db.collection("Notifications").add(notification)
-                                .addOnFailureListener(e -> Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-                    } else {
-                        Toast.makeText(this, "Campaign details not found!", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to fetch campaign details: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                // Add the notification to Firestore
+                db.collection("Notifications").add(notification).addOnFailureListener(e -> Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            } else {
+                Toast.makeText(this, "Campaign details not found!", Toast.LENGTH_SHORT).show();
+            }
+        }).addOnFailureListener(e -> Toast.makeText(this, "Failed to fetch campaign details: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 }

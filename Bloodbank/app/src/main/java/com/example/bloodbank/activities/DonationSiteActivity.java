@@ -23,6 +23,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -48,6 +49,7 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
     private HashMap<Marker, DocumentSnapshot> markerSiteMap;
 
     private LatLng userLatLng;
+    private Polyline currentPolyline;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,10 +102,7 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
 
     private void addUserLocationMarker() {
         if (userLatLng != null) {
-            mMap.addMarker(new MarkerOptions()
-                    .position(userLatLng)
-                    .title("Your Location")
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+            mMap.addMarker(new MarkerOptions().position(userLatLng).title("Your Location").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 12));
         }
     }
@@ -114,9 +113,7 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
             filteredSites.addAll(donationSites);
         } else {
             filteredSites.clear();
-            filteredSites.addAll(donationSites.stream()
-                    .filter(site -> site.getString("shortName").toLowerCase().contains(query.toLowerCase()))
-                    .collect(Collectors.toList()));
+            filteredSites.addAll(donationSites.stream().filter(site -> site.getString("shortName").toLowerCase().contains(query.toLowerCase())).collect(Collectors.toList()));
         }
         siteAdapter.notifyDataSetChanged();
     }
@@ -167,11 +164,7 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
             HashMap<String, Double> location = (HashMap<String, Double>) site.get("locationLatLng");
             if (shortName != null && location != null) {
                 LatLng latLng = new LatLng(location.get("lat"), location.get("lng"));
-                Marker marker = mMap.addMarker(new MarkerOptions()
-                        .position(latLng)
-                        .title(shortName)
-                        .snippet(address)
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+                Marker marker = mMap.addMarker(new MarkerOptions().position(latLng).title(shortName).snippet(address).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
                 markerSiteMap.put(marker, site);
             }
         }
@@ -204,12 +197,12 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
 
     private void drawRouteToLocation(LatLng destination) {
         if (userLatLng != null) {
-            PolylineOptions options = new PolylineOptions()
-                    .add(userLatLng)
-                    .add(destination)
-                    .color(android.graphics.Color.RED)
-                    .width(8);
-            mMap.addPolyline(options);
+            if (currentPolyline != null) {
+                currentPolyline.remove();
+            }
+
+            PolylineOptions options = new PolylineOptions().add(userLatLng).add(destination).color(android.graphics.Color.RED).width(8);
+            currentPolyline = mMap.addPolyline(options);
         }
     }
 

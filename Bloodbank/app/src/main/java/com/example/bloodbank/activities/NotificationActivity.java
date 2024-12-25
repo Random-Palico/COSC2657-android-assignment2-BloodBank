@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -51,6 +52,9 @@ public class NotificationActivity extends AppCompatActivity {
         notificationContainer = findViewById(R.id.notificationContainer);
         notificationTabs = findViewById(R.id.notificationTabs);
         noNotificationsText = findViewById(R.id.noNotificationsText);
+        ImageButton backButton = findViewById(R.id.backButton);
+
+        backButton.setOnClickListener(v -> finish());
 
         receiverIds = Arrays.asList(getIntent().getStringArrayExtra("RECEIVER_IDS"));
         userRole = getIntent().getStringExtra("USER_ROLE");

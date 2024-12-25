@@ -8,6 +8,16 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_back_arrow"
+            android:contentDescription="Back"
+            android:layout_gravity="start"
+            android:padding="8dp" />
+
         <ImageView
             android:id="@+id/campaignImage"
             android:layout_width="match_parent"
@@ -19,26 +29,26 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingTop="8dp"
-            android:textSize="18sp"
+            android:textSize="25dp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/campaignDate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingTop="8dp" />
+            android:paddingTop="14dp" />
 
         <TextView
             android:id="@+id/campaignLocation"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingTop="8dp" />
+            android:paddingTop="14dp" />
 
         <TextView
             android:id="@+id/campaignAddress"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingTop="8dp" />
+            android:paddingTop="14dp" />
 
         <com.google.android.gms.maps.MapView
             android:id="@+id/campaignMapView"
@@ -51,13 +61,13 @@
             android:id="@+id/requiredBloodTypes"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingTop="8dp" />
+            android:paddingTop="14dp" />
 
         <TextView
             android:id="@+id/campaignDescription"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingTop="8dp" />
+            android:paddingTop="12dp" />
 
         <LinearLayout
             android:layout_width="match_parent"

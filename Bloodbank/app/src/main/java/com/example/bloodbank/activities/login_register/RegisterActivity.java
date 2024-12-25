@@ -5,6 +5,7 @@ import android.view.MotionEvent;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -26,6 +27,7 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
+        // Firebase instances
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
@@ -34,6 +36,9 @@ public class RegisterActivity extends AppCompatActivity {
         EditText passwordField = findViewById(R.id.password);
         EditText confirmPasswordField = findViewById(R.id.confirmPassword);
         Button registerButton = findViewById(R.id.registerButton);
+        ImageButton backButton = findViewById(R.id.backButton);
+
+        backButton.setOnClickListener(v -> finish());
 
         registerButton.setOnClickListener(v -> {
             String name = nameField.getText().toString().trim();
@@ -82,6 +87,7 @@ public class RegisterActivity extends AppCompatActivity {
         });
     }
 
+    // Hide keyboard
     private void hideKeyboard() {
         InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
         if (imm != null && getCurrentFocus() != null) {

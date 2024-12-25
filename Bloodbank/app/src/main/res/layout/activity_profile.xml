@@ -14,7 +14,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Update Info Card -->
+            <!-- Update profile info card -->
             <LinearLayout
                 android:id="@+id/missingInfoCard"
                 android:layout_width="match_parent"

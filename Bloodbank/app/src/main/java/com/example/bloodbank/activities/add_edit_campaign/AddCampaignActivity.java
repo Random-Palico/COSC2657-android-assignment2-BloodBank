@@ -66,6 +66,9 @@ public class AddCampaignActivity extends AppCompatActivity {
         selectedImageView = findViewById(R.id.selectedImageView);
         locationButton = findViewById(R.id.locationButton);
         locationPreview = findViewById(R.id.locationPreview);
+        ImageButton backButton = findViewById(R.id.backButton);
+
+        backButton.setOnClickListener(v -> finish());
 
         dateButton.setOnClickListener(v -> showDatePicker());
 

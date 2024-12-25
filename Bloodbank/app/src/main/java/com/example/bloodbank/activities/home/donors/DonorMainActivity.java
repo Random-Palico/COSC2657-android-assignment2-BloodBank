@@ -52,8 +52,6 @@ public class DonorMainActivity extends BaseActivity {
         fetchCampaigns();
 
         ImageView notificationButton = findViewById(R.id.notificationButton);
-        checkForUnreadNotifications(notificationButton);
-
 
         notificationButton.setOnClickListener(v -> {
             SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
@@ -72,19 +70,21 @@ public class DonorMainActivity extends BaseActivity {
         });
     }
 
-    private void checkForUnreadNotifications(ImageView notificationButton) {
-        String userId = getIntent().getStringExtra("USER_ID");
-        if (userId == null) {
-            Log.e(TAG, "User ID is null. Ensure it is passed in the intent.");
+    private void checkForUnreadNotifications() {
+        SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+        String userId = sharedPreferences.getString("USER_ID", null);
+
+        if (TextUtils.isEmpty(userId)) {
+            Log.e(TAG, "User ID is missing. Notifications cannot be fetched.");
             return;
         }
 
         List<String> validReceiverIds = Arrays.asList("all", userId);
 
         db.collection("Notifications").whereIn("receiverId", validReceiverIds).get().addOnSuccessListener(querySnapshot -> {
-            if (querySnapshot == null || querySnapshot.isEmpty()) {
+            if (querySnapshot.isEmpty()) {
                 Log.d(TAG, "No notifications found.");
-                updateNotificationIcon(notificationButton, false);
+                updateNotificationIcon(false);
                 return;
             }
 
@@ -92,21 +92,21 @@ public class DonorMainActivity extends BaseActivity {
 
             for (DocumentSnapshot document : querySnapshot.getDocuments()) {
                 List<String> readBy = (List<String>) document.get("readBy");
-
                 if (readBy == null || !readBy.contains(userId)) {
                     hasUnreadNotifications = true;
                     break;
                 }
             }
 
-            updateNotificationIcon(notificationButton, hasUnreadNotifications);
+            updateNotificationIcon(hasUnreadNotifications);
         }).addOnFailureListener(e -> {
             Log.e(TAG, "Error checking notifications: ", e);
-            updateNotificationIcon(notificationButton, false);
+            updateNotificationIcon(false);
         });
     }
 
-    private void updateNotificationIcon(ImageView notificationButton, boolean hasUnreadNotifications) {
+    private void updateNotificationIcon(boolean hasUnreadNotifications) {
+        ImageView notificationButton = findViewById(R.id.notificationButton);
         if (hasUnreadNotifications) {
             notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
         } else {
@@ -166,6 +166,7 @@ public class DonorMainActivity extends BaseActivity {
         super.onResume();
         fetchProfileImage();
         fetchCampaigns();
+        checkForUnreadNotifications();
     }
 
     private void fetchProfileImage() {

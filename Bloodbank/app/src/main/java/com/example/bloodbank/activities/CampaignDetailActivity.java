@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -48,8 +49,10 @@ public class CampaignDetailActivity extends AppCompatActivity implements OnMapRe
         editButton = findViewById(R.id.editButton);
         registerButton = findViewById(R.id.registerButton);
         mapView = findViewById(R.id.campaignMapView);
+        ImageButton backButton = findViewById(R.id.backButton);
 
-        // Get campaign details from intent
+        backButton.setOnClickListener(v -> finish());
+
         Intent intent = getIntent();
         campaignId = ((Intent) intent).getStringExtra("campaignId");
         String title = intent.getStringExtra("campaignTitle");

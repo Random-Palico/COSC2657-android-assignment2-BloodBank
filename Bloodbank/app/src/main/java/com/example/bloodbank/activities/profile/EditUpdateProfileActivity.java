@@ -10,6 +10,7 @@ import android.provider.MediaStore;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.Toast;
@@ -75,6 +76,9 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
         chooseImageButton = findViewById(R.id.chooseImageButton);
         dobPickerButton = findViewById(R.id.dobPickerButton);
         profileImageView = findViewById(R.id.profileImage);
+        ImageButton backButton = findViewById(R.id.backButton);
+
+        backButton.setOnClickListener(v -> finish());
     }
 
     private void setupBloodTypeSpinner() {

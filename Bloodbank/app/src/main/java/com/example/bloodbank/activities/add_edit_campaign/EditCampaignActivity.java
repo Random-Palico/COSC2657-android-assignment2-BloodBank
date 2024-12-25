@@ -69,6 +69,9 @@ public class EditCampaignActivity extends AppCompatActivity {
         selectedImageView = findViewById(R.id.selectedImageView);
         locationButton = findViewById(R.id.locationButton);
         locationPreview = findViewById(R.id.locationPreview);
+        ImageButton backButton = findViewById(R.id.backButton);
+
+        backButton.setOnClickListener(v -> finish());
 
         Intent intent = getIntent();
         campaignId = intent.getStringExtra("campaignId");
@@ -211,15 +214,13 @@ public class EditCampaignActivity extends AppCompatActivity {
             }
 
             // Update the campaign
-            db.collection("DonationSites").document(campaignId).update(updatedData)
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(this, "Campaign updated successfully!", Toast.LENGTH_SHORT).show();
-                        sendUpdateNotifications(title, updatedFields);
-                        finish();
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(this, "Error updating campaign: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    });
+            db.collection("DonationSites").document(campaignId).update(updatedData).addOnSuccessListener(aVoid -> {
+                Toast.makeText(this, "Campaign updated successfully!", Toast.LENGTH_SHORT).show();
+                sendUpdateNotifications(title, updatedFields);
+                finish();
+            }).addOnFailureListener(e -> {
+                Toast.makeText(this, "Error updating campaign: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            });
         });
     }
 
@@ -238,13 +239,11 @@ public class EditCampaignActivity extends AppCompatActivity {
             notification.put("status", "unread");
             notification.put("type", "campaign_update");
 
-            db.collection("Notifications").add(notification)
-                    .addOnSuccessListener(documentReference -> {
-                        // Notification success - for debugging
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    });
+            db.collection("Notifications").add(notification).addOnSuccessListener(documentReference -> {
+                // Notification success - for debugging
+            }).addOnFailureListener(e -> {
+                Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            });
         }
     }
 

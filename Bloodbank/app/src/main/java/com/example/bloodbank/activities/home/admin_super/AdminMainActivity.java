@@ -66,8 +66,6 @@ public class AdminMainActivity extends BaseActivity {
         }
 
         ImageView notificationButton = findViewById(R.id.notificationButton);
-        checkForUnreadNotifications(notificationButton);
-
 
         notificationButton.setOnClickListener(v -> {
             Intent intent = new Intent(AdminMainActivity.this, NotificationActivity.class);
@@ -120,6 +118,7 @@ public class AdminMainActivity extends BaseActivity {
         super.onResume();
         fetchProfileImage();
         fetchCampaigns();
+        checkForUnreadNotifications();
     }
 
     @Override
@@ -140,11 +139,16 @@ public class AdminMainActivity extends BaseActivity {
         }
     }
 
-    private void checkForUnreadNotifications(ImageView notificationButton) {
-        String currentUserId = userId;
-        List<String> validReceiverIds = Arrays.asList("all", "adminManager", "admin");
+    private void checkForUnreadNotifications() {
+        ImageView notificationButton = findViewById(R.id.notificationButton);
 
-        // Fetch all notifications 
+        if (userId == null) {
+            Log.e(TAG, "User ID is null. Ensure it is passed in the intent or shared preferences.");
+            return;
+        }
+
+        List<String> validReceiverIds = Arrays.asList("all", "admin", "adminManager", userId);
+
         db.collection("Notifications").whereIn("receiverId", validReceiverIds).get().addOnSuccessListener(querySnapshot -> {
             if (querySnapshot.isEmpty()) {
                 Log.d(TAG, "No notifications found.");
@@ -156,7 +160,7 @@ public class AdminMainActivity extends BaseActivity {
 
             for (DocumentSnapshot document : querySnapshot.getDocuments()) {
                 List<String> readBy = (List<String>) document.get("readBy");
-                if (readBy == null || !readBy.contains(currentUserId)) {
+                if (readBy == null || !readBy.contains(userId)) {
                     hasUnreadNotifications = true;
                     break;
                 }
@@ -174,7 +178,7 @@ public class AdminMainActivity extends BaseActivity {
             // Show red icon for unread notifications
             notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
         } else {
-            // Show default for no unread notifications
+            // Show default gray icon for no unread notifications
             notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
         }
     }
@@ -312,6 +316,17 @@ public class AdminMainActivity extends BaseActivity {
         assignButton.setText("Assign");
         assignButton.setOnClickListener(v -> showAssignPopup(document.getId(), title));
 
+        List<String> managerNames = (List<String>) document.get("managerName");
+        List<String> managerEmails = (List<String>) document.get("managerEmail");
+
+        if (managerNames != null && !managerNames.isEmpty()) {
+            assignButton.setText("Manage");
+            assignButton.setOnClickListener(v -> showManagePopup(document, managerNames, managerEmails));
+        } else {
+            assignButton.setText("Assign");
+            assignButton.setOnClickListener(v -> showAssignPopup(document.getId(), title));
+        }
+
         cardView.setOnClickListener(v -> {
             Intent intent = new Intent(this, CampaignDetailActivity.class);
             intent.putExtra("campaignId", document.getId());
@@ -398,10 +413,94 @@ public class AdminMainActivity extends BaseActivity {
     }
 
     private void assignManagerToCampaign(String campaignId, String managerName, String managerEmail) {
-        Map<String, Object> updateData = new HashMap<>();
-        updateData.put("managerName", managerName);
-        updateData.put("managerEmail", managerEmail);
+        db.collection("DonationSites").document(campaignId).get().addOnSuccessListener(documentSnapshot -> {
+            if (documentSnapshot.exists()) {
+                List<String> managerNames = (List<String>) documentSnapshot.get("managerName");
+                List<String> managerEmails = (List<String>) documentSnapshot.get("managerEmail");
 
-        FirebaseFirestore.getInstance().collection("DonationSites").document(campaignId).update(updateData).addOnSuccessListener(aVoid -> Toast.makeText(this, "Manager assigned successfully", Toast.LENGTH_SHORT).show()).addOnFailureListener(e -> Toast.makeText(this, "Error assigning manager", Toast.LENGTH_SHORT).show());
+                if (managerNames == null) {
+                    managerNames = new ArrayList<>();
+                }
+                if (managerEmails == null) {
+                    managerEmails = new ArrayList<>();
+                }
+
+                if (managerEmails.contains(managerEmail)) {
+                    Toast.makeText(this, "Manager is already assigned to this campaign!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                managerNames.add(managerName);
+                managerEmails.add(managerEmail);
+
+                db.collection("DonationSites").document(campaignId).update("managerName", managerNames, "managerEmail", managerEmails).addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Manager assigned successfully!", Toast.LENGTH_SHORT).show();
+                    fetchCampaigns();
+                }).addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to assign manager: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Error assigning manager", e);
+                });
+            } else {
+                Toast.makeText(this, "Campaign not found!", Toast.LENGTH_SHORT).show();
+            }
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, "Error retrieving campaign data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error retrieving campaign data", e);
+        });
+    }
+
+    private void showManagePopup(DocumentSnapshot document, List<String> managerNames, List<String> managerEmails) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Manage Assigned Managers");
+
+        View dialogView = getLayoutInflater().inflate(R.layout.unassign_manager, null);
+        builder.setView(dialogView);
+
+        TextView assignedManagerText = dialogView.findViewById(R.id.assignedManagerText);
+        Spinner managerSpinner = dialogView.findViewById(R.id.managerSpinner);
+        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
+        Button unassignButton = dialogView.findViewById(R.id.unassignButton);
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, managerNames);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        managerSpinner.setAdapter(adapter);
+
+        StringBuilder managersDisplay = new StringBuilder("Assigned Managers:\n");
+        for (int i = 0; i < managerNames.size(); i++) {
+            managersDisplay.append(managerNames.get(i)).append(" (").append(managerEmails.get(i)).append(")\n");
+        }
+        assignedManagerText.setText(managersDisplay.toString().trim());
+
+        AlertDialog dialog = builder.create();
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+
+        unassignButton.setOnClickListener(v -> {
+            int selectedIndex = managerSpinner.getSelectedItemPosition();
+            if (selectedIndex >= 0) {
+                String managerEmail = managerEmails.get(selectedIndex);
+                String managerName = managerNames.get(selectedIndex);
+                unassignManagerFromCampaign(document, new ArrayList<>(managerNames), new ArrayList<>(managerEmails), managerEmail, managerName);
+                dialog.dismiss();
+            } else {
+                Toast.makeText(this, "Please select a manager to unassign!", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        dialog.show();
+    }
+
+
+    private void unassignManagerFromCampaign(DocumentSnapshot document, List<String> managerNames, List<String> managerEmails, String managerEmail, String managerName) {
+        managerNames.remove(managerName);
+        managerEmails.remove(managerEmail);
+
+        db.collection("DonationSites").document(document.getId()).update("managerName", managerNames, "managerEmail", managerEmails).addOnSuccessListener(aVoid -> {
+            Toast.makeText(this, "Manager unassigned successfully!", Toast.LENGTH_SHORT).show();
+            fetchCampaigns();
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, "Failed to unassign manager: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error unassigning manager", e);
+        });
     }
 }
