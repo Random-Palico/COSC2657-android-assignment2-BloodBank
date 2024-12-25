@@ -2,6 +2,7 @@ package com.example.bloodbank.activities.DonorManagement;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
@@ -18,6 +19,8 @@ import com.example.bloodbank.handler.BaseActivity;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -37,8 +40,17 @@ public class DonorDetailActivity extends BaseActivity {
         donorListLayout = findViewById(R.id.donorListLayout);
         SearchView searchView = findViewById(R.id.searchView);
         ImageButton backButton = findViewById(R.id.backButton);
+        TextView downloadReportButton = findViewById(R.id.downloadReportLabel);
 
         backButton.setOnClickListener(v -> finish());
+
+        String userRole = getSharedPreferences("LoginPrefs", MODE_PRIVATE).getString("USER_ROLE", "donor");
+        if ("admin".equals(userRole)) {
+            downloadReportButton.setVisibility(View.VISIBLE);
+            downloadReportButton.setOnClickListener(v -> downloadReport());
+        } else {
+            downloadReportButton.setVisibility(View.GONE);
+        }
 
         siteId = getIntent().getStringExtra("SITE_ID");
         String siteName = getIntent().getStringExtra("SITE_NAME");
@@ -141,6 +153,67 @@ public class DonorDetailActivity extends BaseActivity {
         }
     }
 
+    private void downloadReport() {
+        db.collection("Donors").get().addOnSuccessListener(donorSnapshot -> {
+            long totalBloodUnits = 0;
+            StringBuilder donorReport = new StringBuilder();
+
+            for (DocumentSnapshot donor : donorSnapshot.getDocuments()) {
+                String name = donor.getString("name");
+                String bloodType = donor.getString("bloodType");
+                long bloodUnits = donor.getLong("bloodUnit") != null ? donor.getLong("bloodUnit") : 0;
+                String location = donor.getString("location");
+
+                totalBloodUnits += bloodUnits;
+
+                donorReport.append("Name: ").append(name).append("\n").append("Blood Type: ").append(bloodType).append("\n").append("Blood Units (mL): ").append(bloodUnits).append("\n").append("Location: ").append(location).append("\n\n");
+            }
+
+            String finalDonorReport = donorReport.toString();
+            long finalTotalBloodUnits = totalBloodUnits;
+
+            db.collection("DonationSites").document(siteId).get().addOnSuccessListener(siteSnapshot -> {
+                String siteName = siteSnapshot.getString("siteName");
+                String shortName = siteSnapshot.getString("shortName");
+                List<String> managerEmails = (List<String>) siteSnapshot.get("managerEmail");
+                List<String> managerNames = (List<String>) siteSnapshot.get("managerName");
+                String address = siteSnapshot.getString("address");
+                List<String> requiredBloodTypes = (List<String>) siteSnapshot.get("requiredBloodTypes");
+
+                String managerEmail = (managerEmails != null && !managerEmails.isEmpty()) ? managerEmails.get(0) : "N/A";
+                String managerName = (managerNames != null && !managerNames.isEmpty()) ? managerNames.get(0) : "N/A";
+                String requiredBloodTypeString = (requiredBloodTypes != null) ? String.join(", ", requiredBloodTypes) : "N/A";
+
+                StringBuilder report = new StringBuilder();
+                report.append("Donation Site Report\n\n").append("Site Name: ").append(siteName).append("\n").append("Short Name: ").append(shortName).append("\n").append("Manager Email: ").append(managerEmail).append("\n").append("Manager Name: ").append(managerName).append("\n").append("Address: ").append(address).append("\n").append("Required Blood Types: ").append(requiredBloodTypeString).append("\n\n").append("Total Blood Units Collected (mL): ").append(finalTotalBloodUnits).append("\n\n").append("Donors:\n").append(finalDonorReport);
+
+                saveReportToFile(report.toString());
+            }).addOnFailureListener(e -> {
+                Toast.makeText(this, "Error fetching site details", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Error fetching site details", e);
+            });
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, "Error fetching donor data", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error fetching donor data", e);
+        });
+    }
+
+    private void saveReportToFile(String reportContent) {
+        try {
+            // Save the file downloads directory
+            File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            File reportFile = new File(downloadsDir, "DonationReport.txt");
+
+            FileWriter writer = new FileWriter(reportFile);
+            writer.write(reportContent);
+            writer.close();
+
+            Toast.makeText(this, "Download report complete", Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "Error saving report", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error saving report", e);
+        }
+    }
 
     private String calculateAge(String dob) {
         if (dob == null || dob.isEmpty()) return "N/A";
