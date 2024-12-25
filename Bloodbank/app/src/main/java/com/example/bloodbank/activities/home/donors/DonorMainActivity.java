@@ -70,8 +70,6 @@ public class DonorMainActivity extends BaseActivity {
             intent.putExtra("USER_ROLE", "donor");
             startActivity(intent);
         });
-
-
     }
 
     private void checkForUnreadNotifications(ImageView notificationButton) {
@@ -81,25 +79,40 @@ public class DonorMainActivity extends BaseActivity {
             return;
         }
 
-        List<String> validReceiverIds = new ArrayList<>(Arrays.asList("all", userId));
+        List<String> validReceiverIds = Arrays.asList("all", userId);
 
-        db.collection("Notifications")
-                .whereIn("receiverId", validReceiverIds)
-                .whereEqualTo("status", "unread")
-                .addSnapshotListener((querySnapshot, e) -> {
-                    if (e != null) {
-                        Log.e(TAG, "Failed to listen for notifications: " + e.getMessage());
-                        return;
-                    }
+        db.collection("Notifications").whereIn("receiverId", validReceiverIds).get().addOnSuccessListener(querySnapshot -> {
+            if (querySnapshot == null || querySnapshot.isEmpty()) {
+                Log.d(TAG, "No notifications found.");
+                updateNotificationIcon(notificationButton, false);
+                return;
+            }
 
-                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
-                        notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
-                    } else {
-                        notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
-                    }
-                });
+            boolean hasUnreadNotifications = false;
+
+            for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                List<String> readBy = (List<String>) document.get("readBy");
+
+                if (readBy == null || !readBy.contains(userId)) {
+                    hasUnreadNotifications = true;
+                    break;
+                }
+            }
+
+            updateNotificationIcon(notificationButton, hasUnreadNotifications);
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error checking notifications: ", e);
+            updateNotificationIcon(notificationButton, false);
+        });
     }
 
+    private void updateNotificationIcon(ImageView notificationButton, boolean hasUnreadNotifications) {
+        if (hasUnreadNotifications) {
+            notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
+        } else {
+            notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
+        }
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -163,33 +176,23 @@ public class DonorMainActivity extends BaseActivity {
             return;
         }
 
-        db.collection("Users")
-                .whereEqualTo("email", userEmail)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (!querySnapshot.isEmpty()) {
-                        DocumentSnapshot document = querySnapshot.getDocuments().get(0);
-                        String profileImageUrl = document.getString("profileImage");
+        db.collection("Users").whereEqualTo("email", userEmail).get().addOnSuccessListener(querySnapshot -> {
+            if (!querySnapshot.isEmpty()) {
+                DocumentSnapshot document = querySnapshot.getDocuments().get(0);
+                String profileImageUrl = document.getString("profileImage");
 
-                        if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
-                            Glide.with(this)
-                                    .load(profileImageUrl)
-                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                    .skipMemoryCache(true)
-                                    .placeholder(R.drawable.ic_placeholder)
-                                    .error(R.drawable.ic_placeholder)
-                                    .into(profileImage);
-                        } else {
-                            profileImage.setImageResource(R.drawable.ic_placeholder);
-                        }
-                    } else {
-                        Log.e(TAG, "No user found with the given email.");
-                        profileImage.setImageResource(R.drawable.ic_placeholder);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error fetching user profile: " + e.getMessage(), e);
-                });
+                if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
+                    Glide.with(this).load(profileImageUrl).diskCacheStrategy(DiskCacheStrategy.NONE).skipMemoryCache(true).placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_placeholder).into(profileImage);
+                } else {
+                    profileImage.setImageResource(R.drawable.ic_placeholder);
+                }
+            } else {
+                Log.e(TAG, "No user found with the given email.");
+                profileImage.setImageResource(R.drawable.ic_placeholder);
+            }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error fetching user profile: " + e.getMessage(), e);
+        });
     }
 
     private void fetchCampaigns() {

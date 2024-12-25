@@ -2,7 +2,10 @@ package com.example.bloodbank.activities;
 
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.location.Address;
+import android.location.Geocoder;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
@@ -17,10 +20,15 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+
 public class MapPickerActivity extends AppCompatActivity implements OnMapReadyCallback {
     private MapView mapView;
     private GoogleMap mMap;
     private LatLng selectedLatLng;
+    private String fetchedAddress;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +52,7 @@ public class MapPickerActivity extends AppCompatActivity implements OnMapReadyCa
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // default location to saigon - may change later
+        // Default location to Saigon
         LatLng defaultLocation = new LatLng(10.7769, 106.7009);
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 15));
 
@@ -52,11 +60,31 @@ public class MapPickerActivity extends AppCompatActivity implements OnMapReadyCa
             mMap.clear();
             selectedLatLng = latLng;
             mMap.addMarker(new MarkerOptions().position(latLng).title("Selected Location"));
+
+            // Fetch address using Geocoder
+            fetchAddressFromCoordinates(latLng);
         });
     }
 
+    private void fetchAddressFromCoordinates(LatLng latLng) {
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        try {
+            List<Address> addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                fetchedAddress = address.getAddressLine(0);
+                Log.d("MapPickerActivity", "Fetched Address: " + fetchedAddress);
+            } else {
+                fetchedAddress = "";
+                Log.w("MapPickerActivity", "No address found for the selected location.");
+            }
+        } catch (IOException e) {
+            fetchedAddress = "";
+            Log.e("MapPickerActivity", "Error fetching address: " + e.getMessage(), e);
+        }
+    }
+
     private void promptForDetails() {
-        // Input box for name and address
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 20, 50, 20);
@@ -67,6 +95,8 @@ public class MapPickerActivity extends AppCompatActivity implements OnMapReadyCa
 
         EditText addressInput = new EditText(this);
         addressInput.setHint("Enter the address");
+        // fill in the input box with the fetched address so user can just edit them abit - reduce time
+        addressInput.setText(fetchedAddress);
         layout.addView(addressInput);
 
         new AlertDialog.Builder(this)

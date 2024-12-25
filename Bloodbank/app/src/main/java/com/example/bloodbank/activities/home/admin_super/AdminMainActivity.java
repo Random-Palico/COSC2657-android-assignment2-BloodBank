@@ -42,7 +42,7 @@ public class AdminMainActivity extends BaseActivity {
     private LinearLayout campaignList;
     private List<DocumentSnapshot> campaigns = new ArrayList<>();
     private ImageView profileImage;
-    private String currentUserId;
+    private String userId;
     private String currentUserRole;
 
     @Override
@@ -55,12 +55,11 @@ public class AdminMainActivity extends BaseActivity {
 
         profileImage = findViewById(R.id.profileImage);
 
-        // Retrieve user details from SharedPreferences
         SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-        currentUserId = sharedPreferences.getString("USER_ID", null);
+        userId = sharedPreferences.getString("USER_ID", null);
         currentUserRole = sharedPreferences.getString("USER_ROLE", "user");
 
-        if (currentUserId == null) {
+        if (userId == null) {
             Toast.makeText(this, "Unable to fetch user details. Please log in again.", Toast.LENGTH_SHORT).show();
             finish();
             return;
@@ -72,8 +71,8 @@ public class AdminMainActivity extends BaseActivity {
 
         notificationButton.setOnClickListener(v -> {
             Intent intent = new Intent(AdminMainActivity.this, NotificationActivity.class);
-            intent.putExtra("RECEIVER_IDS", new String[]{"all", "admin", "adminManager", currentUserId});
-            intent.putExtra("USER_ID", currentUserId);
+            intent.putExtra("RECEIVER_IDS", new String[]{"all", "admin", "adminManager", userId});
+            intent.putExtra("USER_ID", userId);
             intent.putExtra("USER_ROLE", currentUserRole);
             startActivity(intent);
         });
@@ -142,37 +141,42 @@ public class AdminMainActivity extends BaseActivity {
     }
 
     private void checkForUnreadNotifications(ImageView notificationButton) {
+        String currentUserId = userId;
         List<String> validReceiverIds = Arrays.asList("all", "adminManager", "admin");
 
-        db.collection("Notifications")
-                .whereIn("receiverId", validReceiverIds)
-                .whereEqualTo("status", "unread")
-                .addSnapshotListener((notificationsSnapshot, notificationError) -> {
-                    if (notificationError != null) {
-                        Log.e(TAG, "Failed to listen for notifications: " + notificationError.getMessage());
-                        return;
-                    }
+        // Fetch all notifications 
+        db.collection("Notifications").whereIn("receiverId", validReceiverIds).get().addOnSuccessListener(querySnapshot -> {
+            if (querySnapshot.isEmpty()) {
+                Log.d(TAG, "No notifications found.");
+                updateNotificationIcon(notificationButton, false);
+                return;
+            }
 
-                    boolean hasUnreadNotifications = notificationsSnapshot != null && !notificationsSnapshot.isEmpty();
+            boolean hasUnreadNotifications = false;
 
-                    db.collection("RoleRequests")
-                            .whereEqualTo("status", "pending")
-                            .addSnapshotListener((roleRequestsSnapshot, roleRequestError) -> {
-                                if (roleRequestError != null) {
-                                    Log.e(TAG, "Failed to listen for role requests: " + roleRequestError.getMessage());
-                                    return;
-                                }
+            for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                List<String> readBy = (List<String>) document.get("readBy");
+                if (readBy == null || !readBy.contains(currentUserId)) {
+                    hasUnreadNotifications = true;
+                    break;
+                }
+            }
 
-                                boolean hasPendingRequests = roleRequestsSnapshot != null && !roleRequestsSnapshot.isEmpty();
+            updateNotificationIcon(notificationButton, hasUnreadNotifications);
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error checking notifications: ", e);
+            updateNotificationIcon(notificationButton, false);
+        });
+    }
 
-                                // Update notification icon color
-                                if (hasUnreadNotifications || hasPendingRequests) {
-                                    notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
-                                } else {
-                                    notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
-                                }
-                            });
-                });
+    private void updateNotificationIcon(ImageView notificationButton, boolean hasUnreadNotifications) {
+        if (hasUnreadNotifications) {
+            // Show red icon for unread notifications
+            notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
+        } else {
+            // Show default for no unread notifications
+            notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
+        }
     }
 
     private void fetchProfileImage() {

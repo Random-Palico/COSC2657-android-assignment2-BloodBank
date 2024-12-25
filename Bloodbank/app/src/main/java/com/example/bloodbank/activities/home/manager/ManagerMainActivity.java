@@ -28,6 +28,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -107,25 +108,38 @@ public class ManagerMainActivity extends BaseActivity {
             return;
         }
 
-        List<String> validReceiverIds = new ArrayList<>();
-        validReceiverIds.add("all");
-        validReceiverIds.add("adminManager");
+        List<String> validReceiverIds = Arrays.asList("all", "adminManager", userId);
 
-        db.collection("Notifications")
-                .whereIn("receiverId", validReceiverIds)
-                .whereEqualTo("status", "unread")
-                .addSnapshotListener((querySnapshot, e) -> {
-                    if (e != null) {
-                        Log.e(TAG, "Failed to listen for notifications: " + e.getMessage());
-                        return;
-                    }
+        db.collection("Notifications").whereIn("receiverId", validReceiverIds).get().addOnSuccessListener(querySnapshot -> {
+            if (querySnapshot.isEmpty()) {
+                Log.d(TAG, "No notifications found.");
+                updateNotificationIcon(notificationButton, false);
+                return;
+            }
 
-                    if (querySnapshot != null && !querySnapshot.isEmpty()) {
-                        notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
-                    } else {
-                        notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
-                    }
-                });
+            boolean hasUnreadNotifications = false;
+
+            for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                List<String> readBy = (List<String>) document.get("readBy");
+                if (readBy == null || !readBy.contains(userId)) {
+                    hasUnreadNotifications = true;
+                    break;
+                }
+            }
+
+            updateNotificationIcon(notificationButton, hasUnreadNotifications);
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Failed to check notifications: ", e);
+            updateNotificationIcon(notificationButton, false);
+        });
+    }
+
+    private void updateNotificationIcon(ImageView notificationButton, boolean hasUnreadNotifications) {
+        if (hasUnreadNotifications) {
+            notificationButton.setColorFilter(getResources().getColor(R.color.red), android.graphics.PorterDuff.Mode.SRC_IN);
+        } else {
+            notificationButton.setColorFilter(getResources().getColor(R.color.gray), android.graphics.PorterDuff.Mode.SRC_IN);
+        }
     }
 
     private void fetchProfileImage() {
@@ -136,53 +150,40 @@ public class ManagerMainActivity extends BaseActivity {
             return;
         }
 
-        db.collection("Users")
-                .whereEqualTo("email", userEmail)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (!querySnapshot.isEmpty()) {
-                        DocumentSnapshot document = querySnapshot.getDocuments().get(0);
-                        String profileImageUrl = document.getString("profileImage");
+        db.collection("Users").whereEqualTo("email", userEmail).get().addOnSuccessListener(querySnapshot -> {
+            if (!querySnapshot.isEmpty()) {
+                DocumentSnapshot document = querySnapshot.getDocuments().get(0);
+                String profileImageUrl = document.getString("profileImage");
 
-                        if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
-                            Glide.with(this)
-                                    .load(profileImageUrl)
-                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                    .skipMemoryCache(true)
-                                    .placeholder(R.drawable.ic_placeholder)
-                                    .error(R.drawable.ic_placeholder)
-                                    .into(profileImage);
-                        } else {
-                            profileImage.setImageResource(R.drawable.ic_placeholder);
-                        }
-                    } else {
-                        Log.e(TAG, "No user found with the given email.");
-                        profileImage.setImageResource(R.drawable.ic_placeholder);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error fetching user profile: " + e.getMessage(), e);
-                });
+                if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
+                    Glide.with(this).load(profileImageUrl).diskCacheStrategy(DiskCacheStrategy.NONE).skipMemoryCache(true).placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_placeholder).into(profileImage);
+                } else {
+                    profileImage.setImageResource(R.drawable.ic_placeholder);
+                }
+            } else {
+                Log.e(TAG, "No user found with the given email.");
+                profileImage.setImageResource(R.drawable.ic_placeholder);
+            }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error fetching user profile: " + e.getMessage(), e);
+        });
     }
 
     private void fetchCampaigns() {
         Log.d(TAG, "Fetching campaigns...");
-        db.collection("DonationSites")
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (querySnapshot.isEmpty()) {
-                        Toast.makeText(this, "No campaigns available!", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+        db.collection("DonationSites").get().addOnSuccessListener(querySnapshot -> {
+            if (querySnapshot.isEmpty()) {
+                Toast.makeText(this, "No campaigns available!", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-                    campaigns.clear();
-                    campaigns.addAll(querySnapshot.getDocuments());
-                    displayCampaigns(campaigns);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error fetching campaigns", e);
-                    Toast.makeText(this, "Error fetching campaigns: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+            campaigns.clear();
+            campaigns.addAll(querySnapshot.getDocuments());
+            displayCampaigns(campaigns);
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error fetching campaigns", e);
+            Toast.makeText(this, "Error fetching campaigns: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void displayCampaigns(List<DocumentSnapshot> campaignDocuments) {
@@ -345,51 +346,37 @@ public class ManagerMainActivity extends BaseActivity {
 
     private void showAssignConfirmation(DocumentSnapshot document, List<String> managerNames, List<String> managerEmails, String managerEmail, String managerName) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Assign Task")
-                .setMessage("Are you sure you want to assign yourself to this campaign?")
-                .setPositiveButton("Yes", (dialog, which) -> assignManagerToCampaign(document, managerNames, managerEmails, managerEmail, managerName))
-                .setNegativeButton("No", null)
-                .show();
+        builder.setTitle("Assign Task").setMessage("Are you sure you want to assign yourself to this campaign?").setPositiveButton("Yes", (dialog, which) -> assignManagerToCampaign(document, managerNames, managerEmails, managerEmail, managerName)).setNegativeButton("No", null).show();
     }
 
     private void assignManagerToCampaign(DocumentSnapshot document, List<String> managerNames, List<String> managerEmails, String managerEmail, String managerName) {
         managerNames.add(managerName);
         managerEmails.add(managerEmail);
 
-        db.collection("DonationSites").document(document.getId())
-                .update("managerName", managerNames, "managerEmail", managerEmails)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Assigned successfully!", Toast.LENGTH_SHORT).show();
-                    fetchCampaigns(); // Refresh the list
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to assign: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    Log.e(TAG, "Error assigning manager", e);
-                });
+        db.collection("DonationSites").document(document.getId()).update("managerName", managerNames, "managerEmail", managerEmails).addOnSuccessListener(aVoid -> {
+            Toast.makeText(this, "Assigned successfully!", Toast.LENGTH_SHORT).show();
+            fetchCampaigns(); // Refresh the list
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, "Failed to assign: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error assigning manager", e);
+        });
     }
 
     private void showUnassignConfirmation(DocumentSnapshot document, List<String> managerNames, List<String> managerEmails, String managerEmail, String managerName) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Unassign Task")
-                .setMessage("Are you sure you want to unassign yourself from this campaign?")
-                .setPositiveButton("Yes", (dialog, which) -> unassignManagerFromCampaign(document, managerNames, managerEmails, managerEmail, managerName))
-                .setNegativeButton("No", null)
-                .show();
+        builder.setTitle("Unassign Task").setMessage("Are you sure you want to unassign yourself from this campaign?").setPositiveButton("Yes", (dialog, which) -> unassignManagerFromCampaign(document, managerNames, managerEmails, managerEmail, managerName)).setNegativeButton("No", null).show();
     }
 
     private void unassignManagerFromCampaign(DocumentSnapshot document, List<String> managerNames, List<String> managerEmails, String managerEmail, String managerName) {
         managerNames.remove(managerName);
         managerEmails.remove(managerEmail);
 
-        db.collection("DonationSites").document(document.getId())
-                .update("managerName", managerNames, "managerEmail", managerEmails)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Unassigned successfully!", Toast.LENGTH_SHORT).show();
-                    fetchCampaigns();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to unassign: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    Log.e(TAG, "Error unassigning manager", e);
-                });
+        db.collection("DonationSites").document(document.getId()).update("managerName", managerNames, "managerEmail", managerEmails).addOnSuccessListener(aVoid -> {
+            Toast.makeText(this, "Unassigned successfully!", Toast.LENGTH_SHORT).show();
+            fetchCampaigns();
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, "Failed to unassign: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error unassigning manager", e);
+        });
     }
 }
