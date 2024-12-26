@@ -49,6 +49,11 @@ View Donation Sites: Monitor active donation sites.
 
 Generate Reports: Download detailed reports about campaign performance and donor participation.
 
+admin account:
+
+admin@gmail.com
+123456
+
 ### 3. Manager Dashboard
 
 Managers play a key role in campaign execution. Their features include:
