@@ -105,10 +105,15 @@ public class DonorListActivity extends BaseActivity {
             TextView name = siteCard.findViewById(R.id.siteName);
             TextView address = siteCard.findViewById(R.id.siteAddress);
             TextView details = siteCard.findViewById(R.id.siteDetails);
+            TextView campaignDate = siteCard.findViewById(R.id.campaignDate);
 
             name.setText(siteName);
             address.setText(siteAddress);
             details.setText("Required: " + bloodTypes.toString());
+
+            if (campaignDate != null) {
+                campaignDate.setVisibility(View.GONE);
+            }
 
             siteCard.setOnClickListener(v -> openDonorList(site.getId(), siteName));
 
@@ -123,7 +128,6 @@ public class DonorListActivity extends BaseActivity {
 
         startActivity(intent);
     }
-
 
     private void filterSites(String query) {
         if (query.isEmpty()) {
