@@ -55,6 +55,8 @@ public class AddCampaignActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_campaign);
 
+        setupAllCheckboxBehavior();
+
         db = FirebaseFirestore.getInstance();
         storage = FirebaseStorage.getInstance();
 
@@ -125,7 +127,17 @@ public class AddCampaignActivity extends AppCompatActivity {
 
     private String[] getSelectedBloodTypes() {
         ArrayList<String> selectedTypes = new ArrayList<>();
-        CheckBox[] checkBoxes = {findViewById(R.id.bloodAPlus), findViewById(R.id.bloodAMinus), findViewById(R.id.bloodBPlus), findViewById(R.id.bloodBMinus), findViewById(R.id.bloodOPlus), findViewById(R.id.bloodOMinus), findViewById(R.id.bloodABPlus), findViewById(R.id.bloodABMinus)};
+        CheckBox[] checkBoxes = {
+                findViewById(R.id.bloodAPlus),
+                findViewById(R.id.bloodAMinus),
+                findViewById(R.id.bloodBPlus),
+                findViewById(R.id.bloodBMinus),
+                findViewById(R.id.bloodOPlus),
+                findViewById(R.id.bloodOMinus),
+                findViewById(R.id.bloodABPlus),
+                findViewById(R.id.bloodABMinus),
+                findViewById(R.id.bloodAll)
+        };
 
         for (CheckBox checkBox : checkBoxes) {
             if (checkBox.isChecked()) {
@@ -133,6 +145,37 @@ public class AddCampaignActivity extends AppCompatActivity {
             }
         }
         return selectedTypes.toArray(new String[0]);
+    }
+
+    private void setupAllCheckboxBehavior() {
+        CheckBox bloodAll = findViewById(R.id.bloodAll);
+        CheckBox[] checkBoxes = {
+                findViewById(R.id.bloodAPlus),
+                findViewById(R.id.bloodAMinus),
+                findViewById(R.id.bloodBPlus),
+                findViewById(R.id.bloodBMinus),
+                findViewById(R.id.bloodOPlus),
+                findViewById(R.id.bloodOMinus),
+                findViewById(R.id.bloodABPlus),
+                findViewById(R.id.bloodABMinus)
+        };
+
+        bloodAll.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            for (CheckBox checkBox : checkBoxes) {
+                checkBox.setEnabled(!isChecked);
+                if (isChecked) {
+                    checkBox.setChecked(false);
+                }
+            }
+        });
+
+        for (CheckBox checkBox : checkBoxes) {
+            checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked && bloodAll.isChecked()) {
+                    bloodAll.setChecked(false);
+                }
+            });
+        }
     }
 
     private void addCampaign() {

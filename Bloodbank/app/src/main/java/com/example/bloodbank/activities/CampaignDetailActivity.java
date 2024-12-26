@@ -105,9 +105,7 @@ public class CampaignDetailActivity extends AppCompatActivity implements OnMapRe
         Glide.with(this).load(imageUrl).into(campaignImageView);
 
         // Initialize MapView
-        Bundle mapViewBundle = savedInstanceState != null
-                ? savedInstanceState.getBundle(MAP_VIEW_BUNDLE_KEY)
-                : null;
+        Bundle mapViewBundle = savedInstanceState != null ? savedInstanceState.getBundle(MAP_VIEW_BUNDLE_KEY) : null;
         mapView.onCreate(mapViewBundle);
         mapView.getMapAsync(this);
 
@@ -139,35 +137,28 @@ public class CampaignDetailActivity extends AppCompatActivity implements OnMapRe
             startActivity(editIntent);
         });
 
-        // Register button
         registerButton.setOnClickListener(v -> {
-            // Retrieve user data from SharedPreferences
             SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
             String userName = sharedPreferences.getString("USER_NAME", "");
             String userBloodType = sharedPreferences.getString("USER_BLOOD_TYPE", "");
             String userLocation = sharedPreferences.getString("USER_LOCATION", "");
 
-            if (userBloodType == null || userBloodType.isEmpty()) {
-                // User has no blood type data, show confirmation dialog
+            if (bloodTypes != null && bloodTypes.contains("All")) {
+                proceedToRegistration(title, description, date, location, address, imageUrl, campaignLatLng, bloodTypes, userName, userBloodType, userLocation);
+            } else if (userBloodType == null || userBloodType.isEmpty()) {
                 showConfirmationDialog(() -> proceedToRegistration(title, description, date, location, address, imageUrl, campaignLatLng, bloodTypes, userName, userBloodType, userLocation));
             } else if (bloodTypes != null && bloodTypes.contains(userBloodType)) {
-                // User blood type matches one of the required blood types
                 proceedToRegistration(title, description, date, location, address, imageUrl, campaignLatLng, bloodTypes, userName, userBloodType, userLocation);
             } else {
-                // User blood type does not match the required blood types
                 Toast.makeText(CampaignDetailActivity.this, "Your blood type is not required for this campaign.", Toast.LENGTH_LONG).show();
             }
         });
 
+
     }
 
     private void showConfirmationDialog(Runnable onConfirm) {
-        new AlertDialog.Builder(this)
-                .setTitle("No Blood Type Data")
-                .setMessage("You have not provided your blood type. Do you still want to register for this campaign?")
-                .setPositiveButton("Yes", (dialog, which) -> onConfirm.run())
-                .setNegativeButton("No", null)
-                .show();
+        new AlertDialog.Builder(this).setTitle("No Blood Type Data").setMessage("You have not provided your blood type. Do you still want to register for this campaign?").setPositiveButton("Yes", (dialog, which) -> onConfirm.run()).setNegativeButton("No", null).show();
     }
 
 

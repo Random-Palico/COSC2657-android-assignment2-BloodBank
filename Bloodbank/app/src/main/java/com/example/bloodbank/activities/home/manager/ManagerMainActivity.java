@@ -359,7 +359,9 @@ public class ManagerMainActivity extends BaseActivity {
 
             Log.d(TAG, "Register Button Clicked - User Blood Type: " + userBloodType);
 
-            if (userBloodType == null || userBloodType.isEmpty()) {
+            if (requiredBloodTypes != null && requiredBloodTypes.contains("All")) {
+                proceedToRegistration(document, title, date, location, address, eventImg, userName, userBloodType, userLocation);
+            } else if (userBloodType == null || userBloodType.isEmpty()) {
                 showConfirmationDialog(() -> proceedToRegistration(document, title, date, location, address, eventImg, userName, userBloodType, userLocation));
             } else if (requiredBloodTypes != null && requiredBloodTypes.contains(userBloodType)) {
                 proceedToRegistration(document, title, date, location, address, eventImg, userName, userBloodType, userLocation);
@@ -367,6 +369,7 @@ public class ManagerMainActivity extends BaseActivity {
                 Toast.makeText(this, "Your blood type is not required for this campaign.", Toast.LENGTH_LONG).show();
             }
         });
+
 
         editButton.setVisibility(View.VISIBLE);
         editButton.setText("Edit");

@@ -354,9 +354,9 @@ public class DonorMainActivity extends BaseActivity {
             String userBloodType = sharedPreferences.getString("USER_BLOOD_TYPE", "");
             String userLocation = sharedPreferences.getString("USER_LOCATION", "");
 
-            Log.d(TAG, "Register Button Clicked - User Blood Type: " + userBloodType);
-
-            if (userBloodType == null || userBloodType.isEmpty()) {
+            if (requiredBloodTypes != null && requiredBloodTypes.contains("All")) {
+                proceedToRegistration(document, title, date, location, address, eventImg, userName, userBloodType, userLocation);
+            } else if (userBloodType == null || userBloodType.isEmpty()) {
                 showConfirmationDialog(() -> proceedToRegistration(document, title, date, location, address, eventImg, userName, userBloodType, userLocation));
             } else if (requiredBloodTypes != null && requiredBloodTypes.contains(userBloodType)) {
                 proceedToRegistration(document, title, date, location, address, eventImg, userName, userBloodType, userLocation);
@@ -364,6 +364,7 @@ public class DonorMainActivity extends BaseActivity {
                 Toast.makeText(this, "Your blood type is not required for this campaign.", Toast.LENGTH_LONG).show();
             }
         });
+
 
         editButton.setVisibility(View.GONE);
         assignButton.setVisibility(View.GONE);
