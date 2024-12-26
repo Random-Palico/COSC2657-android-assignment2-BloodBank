@@ -15,7 +15,7 @@
         <ImageView
             android:id="@+id/campaignImage"
             android:layout_width="0dp"
-            android:layout_height="120dp"
+            android:layout_height="150dp"
             android:layout_weight="1"
             android:contentDescription="@string/campaign_image_desc"
             android:scaleType="centerCrop" />
@@ -52,6 +52,15 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="Campaign Location"
+                android:textColor="@color/gray"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/campaignRequiredBloodTypes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Required Blood Types: A+, O-"
                 android:textColor="@color/gray"
                 android:textSize="14sp" />
 
