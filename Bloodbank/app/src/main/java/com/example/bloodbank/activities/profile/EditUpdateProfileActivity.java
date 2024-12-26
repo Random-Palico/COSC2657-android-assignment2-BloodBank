@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -199,9 +200,15 @@ public class EditUpdateProfileActivity extends AppCompatActivity {
         if (updates.containsKey("name")) {
             editor.putString("USER_NAME", updates.get("name").toString());
         }
+        if (updates.containsKey("bloodType")) {
+            editor.putString("USER_BLOOD_TYPE", updates.get("bloodType").toString());
+            Log.d("EditUpdateProfile", "Updated USER_BLOOD_TYPE: " + updates.get("bloodType").toString());
+        }
+        if (updates.containsKey("location")) {
+            editor.putString("USER_LOCATION", updates.get("location").toString());
+        }
         editor.apply();
     }
-
 
     private void uploadProfileImage(String userId) {
         String path = "profile/" + userId + "/profile.jpg";

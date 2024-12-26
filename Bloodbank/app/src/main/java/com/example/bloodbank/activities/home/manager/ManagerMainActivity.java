@@ -87,12 +87,54 @@ public class ManagerMainActivity extends BaseActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        fetchProfileImage();
+        fetchCampaigns();
+        checkForUnreadNotifications();
+
+        SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+        String userId = sharedPreferences.getString("USER_ID", "");
+
+        db.collection("Users").document(userId).get().addOnSuccessListener(snapshot -> {
+            if (snapshot.exists()) {
+                String bloodType = snapshot.getString("bloodType");
+                Log.d(TAG, "onStart - Blood Type from Firestore: " + bloodType);
+
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString("USER_BLOOD_TYPE", bloodType);
+                editor.apply();
+            } else {
+                Log.e(TAG, "onStart - User data not found in Firestore.");
+            }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "onStart - Failed to fetch user data: " + e.getMessage());
+        });
+    }
+
+
+    @Override
     protected void onResume() {
         super.onResume();
         fetchProfileImage();
         fetchCampaigns();
         checkForUnreadNotifications();
+
+        SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+        String userId = sharedPreferences.getString("USER_ID", "");
+
+        db.collection("Users").document(userId).get().addOnSuccessListener(snapshot -> {
+            if (snapshot.exists()) {
+                String bloodType = snapshot.getString("bloodType");
+                Log.d(TAG, "onResume - Blood Type from Firestore: " + bloodType);
+
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString("USER_BLOOD_TYPE", bloodType);
+                editor.apply();
+            }
+        });
     }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -264,6 +306,23 @@ public class ManagerMainActivity extends BaseActivity {
         displayCampaigns(filteredCampaigns);
     }
 
+    private void proceedToRegistration(DocumentSnapshot document, String title, String date, String location, String address, String eventImg, String userName, String userBloodType, String userLocation) {
+        Intent intent = new Intent(this, DonorRegisterActivity.class);
+        intent.putExtra("campaignId", document.getId());
+        intent.putExtra("campaignTitle", title);
+        intent.putExtra("campaignDate", date);
+        intent.putExtra("campaignLocation", location);
+        intent.putExtra("campaignAddress", address);
+        intent.putExtra("campaignImage", eventImg);
+
+        intent.putExtra("userName", userName);
+        intent.putExtra("userBloodType", userBloodType);
+        intent.putExtra("userLocation", userLocation);
+
+        startActivity(intent);
+    }
+
+
     private void addCampaignCard(DocumentSnapshot document, String title, String date, String location, String eventImg) {
         LayoutInflater inflater = LayoutInflater.from(this);
         View cardView = inflater.inflate(R.layout.campaign_card, campaignList, false);
@@ -293,24 +352,20 @@ public class ManagerMainActivity extends BaseActivity {
 
         registerButton.setVisibility(View.VISIBLE);
         registerButton.setOnClickListener(v -> {
-            Intent intent = new Intent(this, DonorRegisterActivity.class);
-            intent.putExtra("campaignId", document.getId());
-            intent.putExtra("campaignTitle", title);
-            intent.putExtra("campaignDate", date);
-            intent.putExtra("campaignLocation", location);
-            intent.putExtra("campaignAddress", address);
-            intent.putExtra("campaignImage", eventImg);
-
             SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
             String userName = sharedPreferences.getString("USER_NAME", "");
             String userBloodType = sharedPreferences.getString("USER_BLOOD_TYPE", "");
             String userLocation = sharedPreferences.getString("USER_LOCATION", "");
 
-            intent.putExtra("userName", userName);
-            intent.putExtra("userBloodType", userBloodType);
-            intent.putExtra("userLocation", userLocation);
+            Log.d(TAG, "Register Button Clicked - User Blood Type: " + userBloodType);
 
-            startActivity(intent);
+            if (userBloodType == null || userBloodType.isEmpty()) {
+                showConfirmationDialog(() -> proceedToRegistration(document, title, date, location, address, eventImg, userName, userBloodType, userLocation));
+            } else if (requiredBloodTypes != null && requiredBloodTypes.contains(userBloodType)) {
+                proceedToRegistration(document, title, date, location, address, eventImg, userName, userBloodType, userLocation);
+            } else {
+                Toast.makeText(this, "Your blood type is not required for this campaign.", Toast.LENGTH_LONG).show();
+            }
         });
 
         editButton.setVisibility(View.VISIBLE);
@@ -393,6 +448,16 @@ public class ManagerMainActivity extends BaseActivity {
         });
         campaignList.addView(cardView);
     }
+
+    private void showConfirmationDialog(Runnable onConfirm) {
+        new AlertDialog.Builder(this)
+                .setTitle("No Blood Type Data")
+                .setMessage("You have not provided your blood type. Do you still want to register for this campaign?")
+                .setPositiveButton("Yes", (dialog, which) -> onConfirm.run())
+                .setNegativeButton("No", null)
+                .show();
+    }
+
 
     private void showAssignConfirmation(DocumentSnapshot document, List<String> managerNames, List<String> managerEmails, String managerEmail, String managerName) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);

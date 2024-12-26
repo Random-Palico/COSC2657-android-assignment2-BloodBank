@@ -1,12 +1,15 @@
 package com.example.bloodbank.activities;
 
+import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -33,6 +36,27 @@ public class CampaignDetailActivity extends AppCompatActivity implements OnMapRe
     private LatLng campaignLatLng;
 
     private static final String MAP_VIEW_BUNDLE_KEY = "MapViewBundleKey";
+
+    private void proceedToRegistration(String title, String description, String date, String location, String address, String imageUrl, LatLng campaignLatLng, ArrayList<String> bloodTypes, String userName, String userBloodType, String userLocation) {
+        Intent registerIntent = new Intent(this, DonorRegisterActivity.class);
+        registerIntent.putExtra("campaignId", campaignId);
+        registerIntent.putExtra("campaignTitle", title);
+        registerIntent.putExtra("campaignDescription", description);
+        registerIntent.putExtra("campaignDate", date);
+        registerIntent.putExtra("campaignImage", imageUrl);
+        registerIntent.putExtra("campaignLocation", location);
+        registerIntent.putExtra("campaignAddress", address);
+        registerIntent.putExtra("latitude", campaignLatLng.latitude);
+        registerIntent.putExtra("longitude", campaignLatLng.longitude);
+        registerIntent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
+
+        registerIntent.putExtra("userName", userName);
+        registerIntent.putExtra("userBloodType", userBloodType);
+        registerIntent.putExtra("userLocation", userLocation);
+
+        startActivity(registerIntent);
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,21 +141,35 @@ public class CampaignDetailActivity extends AppCompatActivity implements OnMapRe
 
         // Register button
         registerButton.setOnClickListener(v -> {
-            Intent registerIntent = new Intent(this, DonorRegisterActivity.class);
-            registerIntent.putExtra("campaignId", campaignId);
-            registerIntent.putExtra("campaignTitle", title);
-            registerIntent.putExtra("campaignDescription", description);
-            registerIntent.putExtra("campaignDate", date);
-            registerIntent.putExtra("campaignImage", imageUrl);
-            registerIntent.putExtra("campaignLocation", location);
-            registerIntent.putExtra("campaignAddress", address);
-            registerIntent.putExtra("latitude", campaignLatLng.latitude);
-            registerIntent.putExtra("longitude", campaignLatLng.longitude);
-            registerIntent.putStringArrayListExtra("requiredBloodTypes", bloodTypes);
+            // Retrieve user data from SharedPreferences
+            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+            String userName = sharedPreferences.getString("USER_NAME", "");
+            String userBloodType = sharedPreferences.getString("USER_BLOOD_TYPE", "");
+            String userLocation = sharedPreferences.getString("USER_LOCATION", "");
 
-            startActivity(registerIntent);
+            if (userBloodType == null || userBloodType.isEmpty()) {
+                // User has no blood type data, show confirmation dialog
+                showConfirmationDialog(() -> proceedToRegistration(title, description, date, location, address, imageUrl, campaignLatLng, bloodTypes, userName, userBloodType, userLocation));
+            } else if (bloodTypes != null && bloodTypes.contains(userBloodType)) {
+                // User blood type matches one of the required blood types
+                proceedToRegistration(title, description, date, location, address, imageUrl, campaignLatLng, bloodTypes, userName, userBloodType, userLocation);
+            } else {
+                // User blood type does not match the required blood types
+                Toast.makeText(CampaignDetailActivity.this, "Your blood type is not required for this campaign.", Toast.LENGTH_LONG).show();
+            }
         });
+
     }
+
+    private void showConfirmationDialog(Runnable onConfirm) {
+        new AlertDialog.Builder(this)
+                .setTitle("No Blood Type Data")
+                .setMessage("You have not provided your blood type. Do you still want to register for this campaign?")
+                .setPositiveButton("Yes", (dialog, which) -> onConfirm.run())
+                .setNegativeButton("No", null)
+                .show();
+    }
+
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
