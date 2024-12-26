@@ -1,6 +1,6 @@
-#BloodBank
+# BloodBank
 
-**Welcome to *BloodBank*, an Android app designed to streamline blood donation campaigns by connecting donors, managers, and administrators. 
+** Welcome to *BloodBank*, an Android app designed to streamline blood donation campaigns by connecting donors, managers, and administrators. 
 
 ## Getting Started
 
