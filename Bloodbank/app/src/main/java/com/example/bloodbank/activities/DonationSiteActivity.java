@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.SearchView;
 import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -76,6 +77,22 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
         siteListRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         siteAdapter = new SiteAdapter(filteredSites, this::onSiteSelected);
         siteListRecyclerView.setAdapter(siteAdapter);
+
+        SearchView searchView = findViewById(R.id.searchView);
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                filterSites(query);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                filterSites(newText);
+                return true;
+            }
+        });
+
 
         SupportMapFragment mapFragment = new SupportMapFragment();
         getSupportFragmentManager().beginTransaction().replace(R.id.mapFragmentContainer, mapFragment).commit();
