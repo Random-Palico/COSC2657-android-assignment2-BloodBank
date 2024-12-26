@@ -17,14 +17,6 @@
         android:textColor="@color/black" />
 
     <TextView
-        android:id="@+id/campaignDate"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Campaign Date"
-        android:textSize="14sp"
-        android:textColor="@color/gray" />
-
-    <TextView
         android:id="@+id/siteAddress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

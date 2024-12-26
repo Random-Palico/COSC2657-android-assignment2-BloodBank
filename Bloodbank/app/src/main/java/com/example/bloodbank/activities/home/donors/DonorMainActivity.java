@@ -265,6 +265,7 @@ public class DonorMainActivity extends BaseActivity {
         TextView campaignDate = cardView.findViewById(R.id.campaignDate);
         TextView campaignLocation = cardView.findViewById(R.id.campaignLocation);
         ImageView campaignImage = cardView.findViewById(R.id.campaignImage);
+        TextView campaignRequiredBloodTypes = cardView.findViewById(R.id.campaignRequiredBloodTypes);
         Button registerButton = cardView.findViewById(R.id.registerButton);
         Button editButton = cardView.findViewById(R.id.editButton);
         Button assignButton = cardView.findViewById(R.id.assignButton);
@@ -274,6 +275,14 @@ public class DonorMainActivity extends BaseActivity {
         campaignLocation.setText(location);
 
         Glide.with(this).load(eventImg).into(campaignImage);
+
+        List<String> requiredBloodTypes = (List<String>) document.get("requiredBloodTypes");
+        if (requiredBloodTypes != null) {
+            campaignRequiredBloodTypes.setText("Required Blood Types: " + String.join(", ", requiredBloodTypes));
+        } else {
+            campaignRequiredBloodTypes.setText("Required Blood Types: Not specified");
+        }
+
 
         String address = document.getString("address");
 
