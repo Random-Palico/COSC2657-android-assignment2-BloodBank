@@ -273,17 +273,8 @@ public class AdminMainActivity extends BaseActivity {
         TextView campaignDate = cardView.findViewById(R.id.campaignDate);
         TextView campaignLocation = cardView.findViewById(R.id.campaignLocation);
         ImageView campaignImage = cardView.findViewById(R.id.campaignImage);
-        TextView campaignRequiredBloodTypes = cardView.findViewById(R.id.campaignRequiredBloodTypes);
         Button editButton = cardView.findViewById(R.id.editButton);
         Button assignButton = cardView.findViewById(R.id.assignButton);
-
-        List<String> requiredBloodTypes = (List<String>) document.get("requiredBloodTypes");
-        if (requiredBloodTypes != null) {
-            campaignRequiredBloodTypes.setText("Required Blood Types: " + String.join(", ", requiredBloodTypes));
-        } else {
-            campaignRequiredBloodTypes.setText("Required Blood Types: Not specified");
-        }
-
 
         campaignTitle.setText(title);
         campaignDate.setText(date);
