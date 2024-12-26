@@ -47,6 +47,7 @@ public class SiteAdapter extends RecyclerView.Adapter<SiteAdapter.SiteViewHolder
         private final TextView siteName;
         private final TextView siteAddress;
         private final TextView bloodDetails;
+        private final TextView campaignDate;
         private final LinearLayout siteContainer;
 
         public SiteViewHolder(@NonNull View itemView) {
@@ -54,6 +55,7 @@ public class SiteAdapter extends RecyclerView.Adapter<SiteAdapter.SiteViewHolder
             siteName = itemView.findViewById(R.id.siteName);
             siteAddress = itemView.findViewById(R.id.siteAddress);
             bloodDetails = itemView.findViewById(R.id.siteDetails);
+            campaignDate = itemView.findViewById(R.id.campaignDate);
             siteContainer = (LinearLayout) itemView;
         }
 
@@ -61,11 +63,12 @@ public class SiteAdapter extends RecyclerView.Adapter<SiteAdapter.SiteViewHolder
             String shortName = site.getString("shortName");
             String address = site.getString("address");
             List<String> requiredBloodTypes = (List<String>) site.get("requiredBloodTypes");
+            String eventDate = site.getString("eventDate");
 
             siteName.setText(shortName != null ? shortName : "Unknown Site");
             siteAddress.setText(address != null ? address : "No Address Available");
             bloodDetails.setText(requiredBloodTypes != null ? "Required Blood: " + String.join(", ", requiredBloodTypes) : "No Blood Requirements");
-
+            campaignDate.setText(eventDate != null ? "Campaign Date: " + eventDate : "No Campaign Date Available");
             siteContainer.setOnClickListener(v -> listener.onSiteSelected(site));
         }
     }

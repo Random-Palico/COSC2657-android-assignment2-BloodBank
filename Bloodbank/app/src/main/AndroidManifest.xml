@@ -42,7 +42,8 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyC7uUil22WO6t-Yswk1_oI2c54dpVzQyB0" />
+            android:value="@string/google_maps_key" />
+
 
         <activity
             android:name=".activities.add_edit_campaign.EditCampaignActivity"

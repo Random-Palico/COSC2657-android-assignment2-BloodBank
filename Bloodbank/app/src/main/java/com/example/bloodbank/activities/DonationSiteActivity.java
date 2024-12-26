@@ -28,6 +28,13 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -196,15 +203,83 @@ public class DonationSiteActivity extends BaseActivity implements OnMapReadyCall
     }
 
     private void drawRouteToLocation(LatLng destination) {
-        if (userLatLng != null) {
-            if (currentPolyline != null) {
-                currentPolyline.remove();
-            }
+        if (userLatLng == null) return;
 
-            PolylineOptions options = new PolylineOptions().add(userLatLng).add(destination).color(android.graphics.Color.RED).width(8);
-            currentPolyline = mMap.addPolyline(options);
-        }
+        String apiKey = getString(R.string.google_maps_key);
+        String url = "https://maps.googleapis.com/maps/api/directions/json?origin=" + userLatLng.latitude + "," + userLatLng.longitude + "&destination=" + destination.latitude + "," + destination.longitude + "&key=" + apiKey;
+
+        // Make HTTP request to fetch the route
+        new Thread(() -> {
+            try {
+                URL directionUrl = new URL(url);
+                HttpURLConnection connection = (HttpURLConnection) directionUrl.openConnection();
+                connection.setRequestMethod("GET");
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                StringBuilder responseBuilder = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    responseBuilder.append(line);
+                }
+                reader.close();
+
+                String response = responseBuilder.toString();
+                JSONObject jsonObject = new JSONObject(response);
+
+                JSONArray routes = jsonObject.getJSONArray("routes");
+                if (routes.length() > 0) {
+                    JSONObject route = routes.getJSONObject(0);
+                    JSONObject overviewPolyline = route.getJSONObject("overview_polyline");
+                    String encodedPolyline = overviewPolyline.getString("points");
+
+                    List<LatLng> polylinePoints = decodePolyline(encodedPolyline);
+
+                    runOnUiThread(() -> {
+                        if (currentPolyline != null) {
+                            currentPolyline.remove();
+                        }
+
+                        PolylineOptions options = new PolylineOptions().addAll(polylinePoints).color(android.graphics.Color.RED).width(8);
+                        currentPolyline = mMap.addPolyline(options);
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error fetching directions: ", e);
+            }
+        }).start();
     }
+
+    private static List<LatLng> decodePolyline(String encoded) {
+        List<LatLng> polyline = new ArrayList<>();
+        int index = 0, len = encoded.length();
+        int lat = 0, lng = 0;
+
+        while (index < len) {
+            int b, shift = 0, result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lat += dlat;
+
+            shift = 0;
+            result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lng += dlng;
+
+            polyline.add(new LatLng((lat / 1E5), (lng / 1E5)));
+        }
+
+        return polyline;
+    }
+
 
     private void showSiteDetails(DocumentSnapshot siteData) {
         String shortName = siteData.getString("shortName");
