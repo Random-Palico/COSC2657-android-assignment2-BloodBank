@@ -15,7 +15,7 @@ https://github.com/Random-Palico/COSC2657-android-assignment2-BloodBank.git
 ### Open the Project
 Once the repository is cloned, open the project in Android Studio. Make sure you have the latest version of Android Studio to avoid any compatibility issues.
 
-###Select a Device
+### Select a Device
 
 In Android Studio, select a device to run the app. The app is best run on a mobile device:
 
@@ -29,7 +29,7 @@ After selecting your device, press the Play button to build and run the app.
 
 *BloodBank* is a comprehensive app designed to facilitate blood donation campaigns. The app provides tailored interfaces and functionalities for different user roles, including donors, managers, and administrators. 
 
-###Main Features
+### Main Features
 
 ### 1. Login and Registration
 
