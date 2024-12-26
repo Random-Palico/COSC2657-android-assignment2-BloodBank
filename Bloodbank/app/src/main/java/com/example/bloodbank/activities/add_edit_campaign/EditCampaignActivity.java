@@ -225,26 +225,47 @@ public class EditCampaignActivity extends AppCompatActivity {
     }
 
     private void sendUpdateNotifications(String title, List<String> updatedFields) {
+        StringBuilder combinedMessage = new StringBuilder(title + " has been updated. Changes include: ");
+
         for (String field : updatedFields) {
-            String message = title + " has an updated " + field + ".";
+            switch (field) {
+                case "Location":
+                    combinedMessage.append("\n- Location updated to ").append(selectedShortName).append(" at ").append(selectedAddress).append(".");
+                    break;
 
-            if (field.equals("Location")) {
-                message = title + "'s location has been updated to " + selectedShortName + " at " + selectedAddress + ".";
+                case "Title":
+                    combinedMessage.append("\n- New title: ").append(title).append(".");
+                    break;
+
+                case "Description":
+                    combinedMessage.append("\n- Description updated.");
+                    break;
+
+                case "Event Date":
+                    combinedMessage.append("\n- Event date changed to ").append(selectedDate).append(".");
+                    break;
+
+                case "Required Blood Types":
+                    combinedMessage.append("\n- Required blood types updated to ").append(String.join(", ", getSelectedBloodTypes())).append(".");
+                    break;
+
+                default:
+                    combinedMessage.append("\n- ").append(field).append(" updated.");
             }
-
-            Map<String, Object> notification = new HashMap<>();
-            notification.put("receiverId", "all");
-            notification.put("message", message);
-            notification.put("timestamp", System.currentTimeMillis());
-            notification.put("status", "unread");
-            notification.put("type", "campaign_update");
-
-            db.collection("Notifications").add(notification).addOnSuccessListener(documentReference -> {
-                // Notification success - for debugging
-            }).addOnFailureListener(e -> {
-                Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            });
         }
+
+        // Create combined notification
+        Map<String, Object> notification = new HashMap<>();
+        notification.put("receiverId", "all");
+        notification.put("message", combinedMessage.toString());
+        notification.put("timestamp", System.currentTimeMillis());
+        notification.put("status", "unread");
+        notification.put("type", "campaign_update");
+
+        db.collection("Notifications").add(notification).addOnSuccessListener(documentReference -> {
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, "Failed to send notification: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        });
     }
 
     @Override
